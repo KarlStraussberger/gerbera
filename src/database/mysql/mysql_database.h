@@ -75,17 +75,17 @@ private:
 
     void _exec(const char* query, int length = -1);
 
-    MYSQL db;
+    MYSQL db {};
 
-    bool mysql_connection;
+    bool mysql_connection {};
 
     static std::string getError(MYSQL* db);
 
     void threadCleanup() override;
     bool threadCleanupRequired() const override { return true; }
 
-    pthread_key_t mysql_init_key;
-    bool mysql_init_key_initialized;
+    pthread_key_t mysql_init_key {};
+    bool mysql_init_key_initialized {};
 
     void checkMysqlThreadInit() const;
 };

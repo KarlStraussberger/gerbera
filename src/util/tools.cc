@@ -42,6 +42,7 @@
 #include <netinet/in.h>
 #include <numeric>
 #include <queue>
+#include <random>
 #include <sstream>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -76,10 +77,10 @@
 
 static constexpr const char* HEX_CHARS = "0123456789abcdef";
 
-std::vector<std::string> splitString(const std::string& str, char sep, bool empty)
+std::vector<std::string> splitString(std::string_view str, char sep, bool empty)
 {
     std::vector<std::string> ret;
-    const char* data = str.c_str();
+    const char* data = str.data();
     const char* end = data + str.length();
     while (data < end) {
         auto pos = std::strchr(data, sep);
@@ -126,15 +127,16 @@ std::string trimString(std::string str)
     return str;
 }
 
-bool startswith(const std::string& str, const std::string& check)
+bool startswith(std::string_view str, std::string_view check)
 {
     return str.rfind(check, 0) == 0;
 }
 
-std::string toLower(std::string str)
+std::string toLower(std::string_view str)
 {
-    std::transform(str.begin(), str.end(), str.begin(), ::tolower);
-    return str;
+    std::string lower = str.data();
+    std::transform(str.begin(), str.end(), lower.begin(), ::tolower);
+    return lower;
 }
 
 int stoiString(const std::string& str, int def, int base)
@@ -144,6 +146,7 @@ int stoiString(const std::string& str, int def, int base)
 
     return std::stoi(str, nullptr, base);
 }
+
 unsigned long stoulString(const std::string& str, int def, int base)
 {
     if (str.empty() || !std::isdigit(*str.c_str()))
@@ -160,14 +163,14 @@ void reduceString(std::string& str, char ch)
     str.erase(new_end, str.end());
 }
 
-void replaceString(std::string& str, std::string_view from, const std::string& to)
+void replaceString(std::string& str, std::string_view from, std::string_view to)
 {
     size_t start_pos = str.find(from);
     if (start_pos != std::string::npos)
         str.replace(start_pos, from.length(), to);
 }
 
-void replaceAllString(std::string& str, std::string_view from, const std::string& to)
+void replaceAllString(std::string& str, std::string_view from, std::string_view to)
 {
     size_t start_pos = str.find(from);
     while (start_pos != std::string::npos) {
@@ -254,7 +257,7 @@ fs::path findInPath(const fs::path& exec)
     return "";
 }
 
-std::string renderWebUri(const std::string& ip, int port)
+std::string renderWebUri(std::string_view ip, int port)
 {
     std::ostringstream webUIAddr;
     if (ip.find(':') != std::string::npos) {
@@ -266,7 +269,7 @@ std::string renderWebUri(const std::string& ip, int port)
     return webUIAddr.str();
 }
 
-std::string httpRedirectTo(const std::string& addr, const std::string& page)
+std::string httpRedirectTo(std::string_view addr, std::string_view page)
 {
     return fmt::format(R"(<html><head><meta http-equiv="Refresh" content="0;URL={}/{}"></head><body bgcolor="#dddddd"></body></html>)", addr, page);
 }
@@ -289,9 +292,9 @@ std::string hexEncode(const void* data, int len)
     return buf.str();
 }
 
-std::string hexDecodeString(const std::string& encoded)
+std::string hexDecodeString(std::string_view encoded)
 {
-    auto ptr = const_cast<char*>(encoded.c_str());
+    auto ptr = const_cast<char*>(encoded.data());
     int len = encoded.length();
 
     std::ostringstream buf;
@@ -318,9 +321,9 @@ std::string hexMd5(const void* data, int length)
 
     return hexEncode(md5buf, 16);
 }
-std::string hexStringMd5(const std::string& str)
+std::string hexStringMd5(std::string_view str)
 {
-    return hexMd5(str.c_str(), str.length());
+    return hexMd5(str.data(), str.length());
 }
 std::string generateRandomId()
 {
@@ -351,7 +354,7 @@ std::string generateRandomId()
 
 static constexpr const char* HEX_CHARS2 = "0123456789ABCDEF";
 
-std::string urlEscape(const std::string& str)
+std::string urlEscape(std::string_view str)
 {
     std::ostringstream buf;
     for (size_t i = 0; i < str.length();) {
@@ -381,9 +384,9 @@ std::string urlEscape(const std::string& str)
     return buf.str();
 }
 
-std::string urlUnescape(const std::string& str)
+std::string urlUnescape(std::string_view str)
 {
-    auto data = const_cast<char*>(str.c_str());
+    auto data = const_cast<char*>(str.data());
     int len = str.length();
     std::ostringstream buf;
 
@@ -438,9 +441,9 @@ std::string dictEncodeSimple(const std::map<std::string, std::string>& dict)
     return dictEncode(dict, '/', '/');
 }
 
-void dictDecode(const std::string& url, std::map<std::string, std::string>* dict, bool unEscape)
+void dictDecode(std::string_view url, std::map<std::string, std::string>* dict, bool unEscape)
 {
-    auto data = url.c_str();
+    auto data = url.data();
     auto dataEnd = data + url.length();
     while (data < dataEnd) {
         auto ampPos = reinterpret_cast<const char*>(std::strchr(data, '&'));
@@ -464,7 +467,7 @@ void dictDecode(const std::string& url, std::map<std::string, std::string>* dict
 
 // this is somewhat tricky as we need an exact amount of pairs
 // object_id=720&res_id=0
-void dictDecodeSimple(const std::string& url, std::map<std::string, std::string>* dict)
+void dictDecodeSimple(std::string_view url, std::map<std::string, std::string>* dict)
 {
     size_t pos;
     size_t last_pos = 0;
@@ -519,7 +522,7 @@ std::string readTextFile(const fs::path& path)
     return buf.str();
 }
 
-void writeTextFile(const fs::path& path, const std::string& contents)
+void writeTextFile(const fs::path& path, std::string_view contents)
 {
 #ifdef __linux__
     auto f = ::fopen(path.c_str(), "wte");
@@ -530,7 +533,7 @@ void writeTextFile(const fs::path& path, const std::string& contents)
         throw_std_runtime_error("Could not open {}: {}", path.c_str(), std::strerror(errno));
     }
 
-    size_t bytesWritten = std::fwrite(contents.c_str(), 1, contents.length(), f);
+    size_t bytesWritten = std::fwrite(contents.data(), 1, contents.length(), f);
     if (bytesWritten < contents.length()) {
         fclose(f);
 
@@ -583,7 +586,7 @@ void writeBinaryFile(const fs::path& path, const std::byte* data, std::size_t si
         throw_std_runtime_error("Failed to write to file {}", path.c_str());
 }
 
-std::string renderProtocolInfo(const std::string& mimetype, const std::string& protocol, const std::string& extend)
+std::string renderProtocolInfo(std::string_view mimetype, std::string_view protocol, std::string_view extend)
 {
     if (!mimetype.empty() && !protocol.empty()) {
         if (!extend.empty())
@@ -594,7 +597,7 @@ std::string renderProtocolInfo(const std::string& mimetype, const std::string& p
     return "http-get:*:*:*";
 }
 
-std::string getMTFromProtocolInfo(const std::string& protocol)
+std::string getMTFromProtocolInfo(std::string_view protocol)
 {
     std::vector<std::string> parts = splitString(protocol, ':');
     if (parts.size() > 2)
@@ -623,7 +626,7 @@ std::string millisecondsToHMSF(int milliseconds)
     return fmt::format("{:01}:{:02}:{:02}.{:03}", h, m, s, ms);
 }
 
-int HMSFToMilliseconds(const std::string& time)
+int HMSFToMilliseconds(std::string_view time)
 {
     if (time.empty()) {
         log_warning("Could not convert time representation to seconds!");
@@ -634,12 +637,12 @@ int HMSFToMilliseconds(const std::string& time)
     int minutes = 0;
     int seconds = 0;
     int ms = 0;
-    sscanf(time.c_str(), "%d:%d:%d.%d", &hours, &minutes, &seconds, &ms);
+    sscanf(time.data(), "%d:%d:%d.%d", &hours, &minutes, &seconds, &ms);
 
     return ((hours * 3600) + (minutes * 60) + seconds) * 1000 + ms;
 }
 
-bool checkResolution(const std::string& resolution, int* x, int* y)
+bool checkResolution(std::string_view resolution, int* x, int* y)
 {
     if (x != nullptr)
         *x = 0;
@@ -741,9 +744,9 @@ std::string fallbackString(const std::string& first, const std::string& fallback
     return first.empty() ? fallback : first;
 }
 
-unsigned int stringHash(const std::string& str)
+unsigned int stringHash(std::string_view str)
 {
-    return std::accumulate(str.begin(), str.end(), 5381, [](auto&& h, auto&& ch) { return ((h << 5) + h) ^ ch; });
+    return std::accumulate(str.begin(), str.end(), 5381U, [](auto h, auto ch) { return ((h << 5) + h) ^ ch; });
 }
 
 std::string getValueOrDefault(const std::map<std::string, std::string>& m, const std::string& key, const std::string& defval)
@@ -783,7 +786,7 @@ void getTimespecAfterMillis(std::chrono::milliseconds delta, std::chrono::millis
     ret = start + delta;
 }
 
-std::string ipToInterface(const std::string& ip)
+std::string ipToInterface(std::string_view ip)
 {
     if (ip.empty()) {
         return "";
@@ -825,11 +828,11 @@ std::string ipToInterface(const std::string& ip)
     }
 
     freeifaddrs(ifaddr);
-    log_warning("Failed to find interface for IP: {}", ip.c_str());
+    log_warning("Failed to find interface for IP: {}", ip);
     return "";
 }
 
-bool validateYesNo(const std::string& value)
+bool validateYesNo(std::string_view value)
 {
     return !((value != "yes") && (value != "no"));
 }
@@ -1004,7 +1007,7 @@ fs::path getLastPath(const fs::path& path)
     return ret;
 }
 
-ssize_t getValidUTF8CutPosition(std::string str, ssize_t cutpos)
+ssize_t getValidUTF8CutPosition(std::string_view str, ssize_t cutpos)
 {
     ssize_t pos = -1;
     size_t len = str.length();
@@ -1036,28 +1039,22 @@ ssize_t getValidUTF8CutPosition(std::string str, ssize_t cutpos)
     return pos;
 }
 
-std::string getDLNAprofileString(const std::string& contentType)
+std::string getDLNAprofileString(std::string_view contentType)
 {
-    std::string profile;
-    if (contentType == CONTENT_TYPE_MP4)
-        profile = UPNP_DLNA_PROFILE_AVC_MP4_EU;
-    else if (contentType == CONTENT_TYPE_MKV)
-        profile = UPNP_DLNA_PROFILE_MKV;
-    else if (contentType == CONTENT_TYPE_AVI)
-        profile = UPNP_DLNA_PROFILE_AVI;
-    else if (contentType == CONTENT_TYPE_MPEG)
-        profile = UPNP_DLNA_PROFILE_MPEG_PS_PAL;
-    else if (contentType == CONTENT_TYPE_MP3)
-        profile = UPNP_DLNA_PROFILE_MP3;
-    else if (contentType == CONTENT_TYPE_PCM)
-        profile = UPNP_DLNA_PROFILE_LPCM;
+    static std::map<std::string_view, std::string_view> dlnaProfMap {
+        { CONTENT_TYPE_MP4, UPNP_DLNA_PROFILE_AVC_MP4_EU },
+        { CONTENT_TYPE_MKV, UPNP_DLNA_PROFILE_MKV },
+        { CONTENT_TYPE_AVI, UPNP_DLNA_PROFILE_AVI },
+        { CONTENT_TYPE_MPEG, UPNP_DLNA_PROFILE_MPEG_PS_PAL },
+        { CONTENT_TYPE_MP3, UPNP_DLNA_PROFILE_MP3 },
+        { CONTENT_TYPE_PCM, UPNP_DLNA_PROFILE_LPCM },
+    };
+    auto profile = getValueOrDefault(dlnaProfMap, contentType, std::string_view(""));
 
-    if (!profile.empty())
-        profile = fmt::format("{}={}", UPNP_DLNA_PROFILE, profile);
-    return profile;
+    return profile.empty() ? "" : fmt::format("{}={}", UPNP_DLNA_PROFILE, profile);
 }
 
-std::string getDLNAContentHeader(const std::shared_ptr<Config>& config, const std::string& contentType)
+std::string getDLNAContentHeader(const std::shared_ptr<Config>& config, std::string_view contentType)
 {
     std::string content_parameter;
     content_parameter = getDLNAprofileString(contentType);
@@ -1069,7 +1066,7 @@ std::string getDLNAContentHeader(const std::shared_ptr<Config>& config, const st
     return content_parameter;
 }
 
-std::string getDLNATransferHeader(const std::shared_ptr<Config>& config, const std::string& mimeType)
+std::string getDLNATransferHeader(const std::shared_ptr<Config>& config, std::string_view mimeType)
 {
     std::string transfer_parameter;
     if (startswith(mimeType, "image"))
@@ -1080,18 +1077,18 @@ std::string getDLNATransferHeader(const std::shared_ptr<Config>& config, const s
 }
 
 #ifndef HAVE_FFMPEG
-std::string getAVIFourCC(const fs::path& avi_filename)
+std::string getAVIFourCC(std::string_view avi_filename)
 {
 #define FCC_OFFSET 0xbc
     char* buffer;
 
 #ifdef __linux__
-    auto f = ::fopen(avi_filename.c_str(), "rbe");
+    auto f = ::fopen(avi_filename.data(), "rbe");
 #else
-    auto f = ::fopen(avi_filename.c_str(), "rb");
+    auto f = ::fopen(avi_filename.data(), "rb");
 #endif
     if (!f)
-        throw_std_runtime_error("Could not open file {}: {}", avi_filename.c_str(), std::strerror(errno));
+        throw_std_runtime_error("Could not open file {}: {}", avi_filename, std::strerror(errno));
 
     buffer = new char[FCC_OFFSET + 6];
 
@@ -1099,7 +1096,7 @@ std::string getAVIFourCC(const fs::path& avi_filename)
     fclose(f);
     if (rb != FCC_OFFSET + 4) {
         delete[] buffer;
-        throw_std_runtime_error("Could not read header of {}: {}", avi_filename.c_str(), std::strerror(errno));
+        throw_std_runtime_error("Could not read header of {}: {}", avi_filename, std::strerror(errno));
     }
 
     buffer[FCC_OFFSET + 5] = '\0';
@@ -1160,7 +1157,7 @@ std::string sockAddrGetNameInfo(const struct sockaddr* sa)
         throw_std_runtime_error("could not determine getnameinfo: {}", std::strerror(errno));
     }
 
-    return std::string(hoststr) + ":" + std::string(portstr);
+    return fmt::format("{}:{}", hoststr, portstr);
 }
 
 #ifdef SOPCAST
@@ -1178,8 +1175,11 @@ int find_local_port(in_port_t range_min, in_port_t range_max)
         return -1;
     }
 
+    std::mt19937 rng;
+    std::uniform_int_distribution<in_port_t> gen(range_min, range_max);
+
     do {
-        port = rand() % (range_max - range_min) + range_min;
+        port = gen(rng);
 
         fd = socket(AF_INET, SOCK_STREAM, 0);
         if (fd < 0) {
@@ -1205,6 +1205,8 @@ int find_local_port(in_port_t range_min, in_port_t range_max)
             close(fd);
             return port;
         }
+
+        close(fd);
 
         retry_count++;
     } while (retry_count < std::numeric_limits<uint16_t>::max());
