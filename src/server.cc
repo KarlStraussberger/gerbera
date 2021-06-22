@@ -411,17 +411,9 @@ int Server::handleUpnpClientEvent(Upnp_EventType eventType, const void* event)
     case UPNP_DISCOVERY_ADVERTISEMENT_ALIVE:
     case UPNP_DISCOVERY_SEARCH_RESULT: {
         auto d_event = reinterpret_cast<const UpnpDiscovery*>(event);
-#if defined(USING_NPUPNP)
         const char* userAgent = UpnpDiscovery_get_Os_cstr(d_event);
-#else
-        const char* userAgent = UpnpString_get_String(UpnpDiscovery_get_Os(d_event));
-#endif
         const struct sockaddr_storage* destAddr = UpnpDiscovery_get_DestAddr(d_event);
-#if defined(USING_NPUPNP)
         const char* location = UpnpDiscovery_get_Location_cstr(d_event);
-#else
-        const char* location = UpnpString_get_String(UpnpDiscovery_get_Location(d_event));
-#endif
 
         clients->addClientByDiscovery(destAddr, userAgent, location);
         break;
@@ -556,7 +548,7 @@ int Server::registerVirtualDirCallbacks()
             return -1;
         }
     });
-    if (ret != 0)
+    if (ret != UPNP_E_SUCCESS)
         return ret;
 
     log_debug("Setting UpnpVirtualDir OpenCallback");
@@ -620,16 +612,13 @@ int Server::registerVirtualDirCallbacks()
     ret = UpnpVirtualDir_set_CloseCallback([](UpnpWebFileHandle f, const void* cookie, const void* requestCookie) -> int {
         //log_debug("{} close()", f);
         int ret_close = 0;
-        auto handler = static_cast<IOHandler*>(f);
+        auto handler = std::unique_ptr<IOHandler>(static_cast<IOHandler*>(f));
         try {
             handler->close();
         } catch (const std::runtime_error& e) {
             log_error("Exception during close: {}", e.what());
             ret_close = -1;
         }
-
-        delete handler;
-        handler = nullptr;
 
         return ret_close;
     });
