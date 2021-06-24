@@ -32,6 +32,7 @@
 #include "config/config_definition.h"
 #include "config/config_setup.h"
 #include "config/directory_tweak.h"
+#include "config/dynamic_content.h"
 #include "content/autoscan.h"
 #include "content/content_manager.h"
 #include "database/database.h"
@@ -58,7 +59,7 @@ void web::configLoad::addTypeMeta(pugi::xml_node& meta, const std::shared_ptr<Co
 {
     auto info = meta.append_child("item");
     info.append_attribute("item") = cs->getUniquePath().c_str();
-    info.append_attribute("id") = fmt::format("{}", cs->option).c_str();
+    info.append_attribute("id") = fmt::to_string(cs->option).c_str();
     info.append_attribute("type") = cs->getTypeString().c_str();
     info.append_attribute("value") = cs->getDefaultValue().c_str();
     info.append_attribute("help") = cs->getHelp();
@@ -85,7 +86,7 @@ template <typename T>
 void web::configLoad::setValue(pugi::xml_node& item, const T& value)
 {
     static_assert(fmt::has_formatter<T, fmt::format_context>::value, "T must be formattable");
-    item.append_attribute("value") = fmt::format("{}", value).c_str();
+    item.append_attribute("value") = fmt::to_string(value).c_str();
 }
 
 template <>
@@ -238,6 +239,33 @@ void web::configLoad::process()
         item = values.append_child("item");
         createItem(item, cs->getItemPath(i, ATTR_DIRECTORIES_TWEAK_SUBTILTE_FILE), cs->option, ATTR_DIRECTORIES_TWEAK_SUBTILTE_FILE);
         setValue(item, dir->hasSubTitleFile() ? dir->getSubTitleFile() : "");
+    }
+
+    // write dynamic content
+    cs = ConfigDefinition::findConfigSetup(CFG_SERVER_DYNAMIC_CONTENT_LIST);
+    auto dynContent = cs->getValue()->getDynamicContentListOption();
+    for (size_t i = 0; i < dynContent->size(); i++) {
+        auto cont = dynContent->get(i);
+
+        auto item = values.append_child("item");
+        createItem(item, cs->getItemPath(i, ATTR_DYNAMIC_CONTAINER_LOCATION), cs->option, ATTR_DYNAMIC_CONTAINER_LOCATION);
+        setValue(item, cont->getLocation());
+
+        item = values.append_child("item");
+        createItem(item, cs->getItemPath(i, ATTR_DYNAMIC_CONTAINER_IMAGE), cs->option, ATTR_DYNAMIC_CONTAINER_IMAGE);
+        setValue(item, cont->getImage());
+
+        item = values.append_child("item");
+        createItem(item, cs->getItemPath(i, ATTR_DYNAMIC_CONTAINER_TITLE), cs->option, ATTR_DYNAMIC_CONTAINER_TITLE);
+        setValue(item, cont->getTitle());
+
+        item = values.append_child("item");
+        createItem(item, cs->getItemPath(i, ATTR_DYNAMIC_CONTAINER_FILTER), cs->option, ATTR_DYNAMIC_CONTAINER_FILTER);
+        setValue(item, cont->getFilter());
+
+        item = values.append_child("item");
+        createItem(item, cs->getItemPath(i, ATTR_DYNAMIC_CONTAINER_SORT), cs->option, ATTR_DYNAMIC_CONTAINER_SORT);
+        setValue(item, cont->getSort());
     }
 
     // write transconding configuration
