@@ -72,7 +72,7 @@ protected:
 public:
     BrowseParam(std::shared_ptr<CdsObject> object, unsigned int flags)
         : flags(flags)
-        , object(object)
+        , object(std::move(object))
     {
     }
 
@@ -149,7 +149,10 @@ public:
 
 class Database {
 public:
-    explicit Database(std::shared_ptr<Config> config);
+    explicit Database(std::shared_ptr<Config> config)
+        : config(std::move(config))
+    {
+    }
     virtual ~Database() = default;
     virtual void init() = 0;
 

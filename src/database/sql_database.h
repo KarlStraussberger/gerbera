@@ -44,6 +44,8 @@ class CdsContainer;
 class SQLResult;
 class SQLEmitter;
 
+#define DBVERSION 11
+
 #define QTB table_quote_begin
 #define QTE table_quote_end
 
@@ -92,8 +94,8 @@ public:
     virtual void rollback(const std::string_view& tName) = 0;
     virtual void commit(const std::string_view& tName) = 0;
 
-    virtual std::shared_ptr<SQLResult> select(const char* query, int length) = 0;
-    virtual int exec(const char* query, int length, bool getLastInsertId = false) = 0;
+    virtual std::shared_ptr<SQLResult> select(const char* query, size_t length) = 0;
+    virtual int exec(const char* query, size_t length, bool getLastInsertId = false) = 0;
 
     /* wrapper functions for select and exec */
     std::shared_ptr<SQLResult> select(const std::string& buf)
@@ -179,14 +181,17 @@ protected:
 
     std::shared_ptr<Mime> mime;
 
-    char table_quote_begin;
-    char table_quote_end;
+    char table_quote_begin { '\0' };
+    char table_quote_end { '\0' };
     bool use_transaction;
-    bool inTransaction;
+    bool inTransaction {};
 
     std::recursive_mutex sqlMutex;
     using SqlAutoLock = std::lock_guard<decltype(sqlMutex)>;
     std::map<int, std::shared_ptr<CdsContainer>> dynamicContainers;
+
+    void upgradeDatabase(std::string& dbVersion, std::array<std::vector<const char*>, DBVERSION - 1> dbUpdates, std::string_view updateVersionCommand);
+    virtual void _exec(const char* query, int length = -1) = 0;
 
 private:
     std::string sql_browse_query;

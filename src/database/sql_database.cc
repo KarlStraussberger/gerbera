@@ -35,7 +35,6 @@
 #include <climits>
 #include <filesystem>
 #include <fmt/chrono.h>
-#include <list>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -248,10 +247,7 @@ static std::shared_ptr<EnumColumnMapper<MetadataCol>> metaColumnMapper;
 SQLDatabase::SQLDatabase(std::shared_ptr<Config> config, std::shared_ptr<Mime> mime)
     : Database(std::move(config))
     , mime(std::move(mime))
-    , table_quote_begin('\0')
-    , table_quote_end('\0')
     , use_transaction(this->config->getBoolOption(CFG_SERVER_STORAGE_USE_TRANSACTIONS))
-    , inTransaction(false)
 {
 }
 
@@ -304,6 +300,29 @@ void SQLDatabase::init()
     this->sql_meta_query = buf.str();
 
     sqlEmitter = std::make_shared<DefaultSQLEmitter>(searchColumnMapper, metaColumnMapper);
+}
+
+void SQLDatabase::upgradeDatabase(std::string& dbVersion, std::array<std::vector<const char*>, DBVERSION - 1> dbUpdates, std::string_view updateVersionCommand)
+{
+    log_debug("db_version: {}", dbVersion.c_str());
+
+    /* --- database upgrades --- */
+    int version = 1;
+    for (auto&& upgrade : dbUpdates) {
+        if (dbVersion == fmt::to_string(version)) {
+            log_info("Running an automatic database upgrade from database version {} to version {}...", version, version + 1);
+            for (auto&& upgradeCmd : upgrade) {
+                _exec(upgradeCmd);
+            }
+            _exec(fmt::format(updateVersionCommand, version + 1, version).c_str());
+            dbVersion = fmt::to_string(version + 1);
+            log_info("Database upgrade to version {} successful.", dbVersion.c_str());
+        }
+        version++;
+    }
+
+    if (version != DBVERSION || dbVersion != fmt::to_string(DBVERSION))
+        throw_std_runtime_error("The database seems to be from a newer version");
 }
 
 void SQLDatabase::shutdown()
@@ -681,9 +700,8 @@ std::vector<std::shared_ptr<CdsObject>> SQLDatabase::browse(const std::unique_pt
             auto result = this->search(srcParam, &numMatches);
             param->setTotalMatches(numMatches);
             return result;
-        } else {
-            log_warning("Dynamic content {} error '{}'", parent->getID(), parent->getLocation().string());
         }
+        log_warning("Dynamic content {} error '{}'", parent->getID(), parent->getLocation().string());
     }
 
     bool getContainers = param->getFlag(BROWSE_CONTAINERS);
@@ -853,7 +871,8 @@ std::vector<std::shared_ptr<CdsObject>> SQLDatabase::search(const std::unique_pt
 
     retrievalSQL << " ORDER BY " << orderByCode();
 
-    int startingIndex = param->getStartingIndex(), requestedCount = param->getRequestedCount();
+    size_t startingIndex = param->getStartingIndex();
+    size_t requestedCount = param->getRequestedCount();
     if (startingIndex > 0 || requestedCount > 0) {
         retrievalSQL << " LIMIT " << (requestedCount == 0 ? 10000000000 : requestedCount)
                      << " OFFSET " << startingIndex;
@@ -864,15 +883,18 @@ std::vector<std::shared_ptr<CdsObject>> SQLDatabase::search(const std::unique_pt
     sqlResult = select(retrievalSQL);
     commit("search 2");
 
-    std::vector<std::shared_ptr<CdsObject>> arr;
+    std::vector<std::shared_ptr<CdsObject>> result;
 
     for (std::unique_ptr<SQLRow> row = sqlResult->nextRow(); row != nullptr; row = sqlResult->nextRow()) {
         auto obj = createObjectFromSearchRow(row);
-        arr.push_back(obj);
+        result.push_back(obj);
         row = nullptr; // clear out content from unique_ptr
     }
+    if (result.size() < requestedCount) {
+        *numMatches = startingIndex + result.size(); // make sure we do not report too many hits
+    }
 
-    return arr;
+    return result;
 }
 
 int SQLDatabase::getChildCount(int contId, bool containers, bool items, bool hideFsRoot)
@@ -1373,7 +1395,7 @@ std::string SQLDatabase::incrementUpdateIDs(const std::unique_ptr<std::unordered
     commit("incrementUpdateIDs 2");
 
     std::unique_ptr<SQLRow> row;
-    std::list<std::string> rows;
+    std::vector<std::string> rows;
     while ((row = res->nextRow()) != nullptr) {
         std::ostringstream s;
         s << row->col(0) << ',' << row->col(1);
@@ -1404,7 +1426,7 @@ std::unique_ptr<std::unordered_set<int>> SQLDatabase::getObjects(int parentID, b
     while ((row = res->nextRow()) != nullptr) {
         ret.insert(std::stoi(row->col(0)));
     }
-    return std::make_unique<std::unordered_set<int>>(ret);
+    return std::make_unique<std::unordered_set<int>>(std::move(ret));
 }
 
 std::unique_ptr<Database::ChangedContainers> SQLDatabase::removeObjects(const std::unique_ptr<std::unordered_set<int>>& list, bool all)
@@ -1413,10 +1435,9 @@ std::unique_ptr<Database::ChangedContainers> SQLDatabase::removeObjects(const st
     if (count <= 0)
         return nullptr;
 
-    for (int id : *list) {
-        if (IS_FORBIDDEN_CDS_ID(id)) {
-            throw_std_runtime_error("Tried to delete a forbidden ID ({})", id);
-        }
+    auto it = std::find_if(list->begin(), list->end(), IS_FORBIDDEN_CDS_ID);
+    if (it != list->end()) {
+        throw_std_runtime_error("Tried to delete a forbidden ID ({})", *it);
     }
 
     std::ostringstream idsBuf;

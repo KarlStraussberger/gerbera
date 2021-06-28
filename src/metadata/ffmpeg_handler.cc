@@ -61,7 +61,8 @@ extern "C" {
 
 #ifdef HAVE_FFMPEGTHUMBNAILER
 #include "iohandler/mem_io_handler.h"
-#include <libffmpegthumbnailer/videothumbnailerc.h>
+#include <libffmpegthumbnailer/filmstripfilter.h>
+#include <libffmpegthumbnailer/videothumbnailer.h>
 #endif
 
 #include "cds_objects.h"
@@ -74,12 +75,6 @@ extern "C" {
 #else
 #define as_codecpar(s) s->codec
 #endif
-
-// Default constructor
-FfmpegHandler::FfmpegHandler(const std::shared_ptr<Context>& context)
-    : MetadataHandler(context)
-{
-}
 
 void FfmpegHandler::addFfmpegAuxdataFields(const std::shared_ptr<CdsItem>& item, AVFormatContext* pFormatCtx) const
 {
@@ -211,9 +206,13 @@ void FfmpegHandler::addFfmpegResourceFields(const std::shared_ptr<CdsItem>& item
     // video resolution, audio sampling rate, nr of audio channels
     audioset = false;
     videoset = false;
-    for (unsigned int i = 0; i < pFormatCtx->nb_streams; i++) {
+    for (size_t i = 0; i < pFormatCtx->nb_streams; i++) {
         AVStream* st = pFormatCtx->streams[i];
+
         if ((st != nullptr) && (!videoset) && (as_codecpar(st)->codec_type == AVMEDIA_TYPE_VIDEO)) {
+            auto codec_id = as_codecpar(st)->codec_id;
+            resource->addAttribute(R_AUDIOCODEC, avcodec_get_name(codec_id));
+
             if (as_codecpar(st)->codec_tag > 0) {
                 char fourcc[5];
                 fourcc[0] = as_codecpar(st)->codec_tag;
@@ -237,6 +236,8 @@ void FfmpegHandler::addFfmpegResourceFields(const std::shared_ptr<CdsItem>& item
             }
         }
         if ((st != nullptr) && (!audioset) && (as_codecpar(st)->codec_type == AVMEDIA_TYPE_AUDIO)) {
+            auto codec_id = as_codecpar(st)->codec_id;
+            resource->addAttribute(R_VIDEOCODEC, avcodec_get_name(codec_id));
             // find the first stream that has a valid sample rate
             if (as_codecpar(st)->sample_rate > 0) {
                 samplefreq = as_codecpar(st)->sample_rate;
@@ -363,24 +364,15 @@ void FfmpegHandler::writeThumbnailCacheFile(const fs::path& movie_filename, cons
         log_error("Failed to write thumbnail cache: {}", e.what());
     }
 }
-
-namespace {
-template <auto C, auto D>
-inline auto wrap_unique_ptr()
-{
-    auto raw_ptr = C();
-    return std::unique_ptr<std::remove_pointer_t<decltype(raw_ptr)>, decltype(D)>(raw_ptr, D);
-}
-} // namespace
 #endif
 
 std::unique_ptr<IOHandler> FfmpegHandler::serveContent(std::shared_ptr<CdsObject> obj, int resNum)
 {
+#ifdef HAVE_FFMPEGTHUMBNAILER
     auto item = std::dynamic_pointer_cast<CdsItem>(obj);
     if (item == nullptr)
         return nullptr;
 
-#ifdef HAVE_FFMPEGTHUMBNAILER
     if (!config->getBoolOption(CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_ENABLED))
         return nullptr;
 
@@ -395,41 +387,22 @@ std::unique_ptr<IOHandler> FfmpegHandler::serveContent(std::shared_ptr<CdsObject
 
     auto thumb_lock = std::scoped_lock<std::mutex>(thumb_mutex);
 
-#ifdef FFMPEGTHUMBNAILER_OLD_API
-    auto th = wrap_unique_ptr<create_thumbnailer, destroy_thumbnailer>();
-    auto img = wrap_unique_ptr<create_image_data, destroy_image_data>();
-#else
-    auto th = wrap_unique_ptr<video_thumbnailer_create, video_thumbnailer_destroy>();
-    auto img = wrap_unique_ptr<video_thumbnailer_create_image_data, video_thumbnailer_destroy_image_data>();
-#endif // old api
+    auto th = ffmpegthumbnailer::VideoThumbnailer(config->getIntOption(CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_THUMBSIZE), false, true, config->getIntOption(CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_IMAGE_QUALITY), false);
+    std::vector<uint8_t> img;
 
-    th->seek_percentage = config->getIntOption(CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_SEEK_PERCENTAGE);
-    th->overlay_film_strip = config->getBoolOption(CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_FILMSTRIP_OVERLAY);
-
-#ifndef HAVE_FFMPEGTHUMBNAILER_SIZE_API
-    th->thumbnail_size = config->getIntOption(CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_THUMBSIZE);
-#else
-    video_thumbnailer_set_size(th.get(), config->getIntOption(CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_THUMBSIZE), config->getIntOption(CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_THUMBSIZE));
-#endif // old api
-    th->thumbnail_image_quality = config->getIntOption(CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_IMAGE_QUALITY);
-    th->thumbnail_image_type = Jpeg;
+    th.setSeekPercentage(config->getIntOption(CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_SEEK_PERCENTAGE));
+    if (config->getBoolOption(CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_FILMSTRIP_OVERLAY))
+        th.addFilter(new ffmpegthumbnailer::FilmStripFilter());
 
     log_debug("Generating thumbnail for file: {}", item->getLocation().c_str());
 
-#ifdef FFMPEGTHUMBNAILER_OLD_API
-    if (generate_thumbnail_to_buffer(th.get(), item->getLocation().c_str(), img.get()) != 0)
-#else
-    if (video_thumbnailer_generate_thumbnail_to_buffer(th.get(), item->getLocation().c_str(), img.get()) != 0)
-#endif // old api
-    {
-        throw_std_runtime_error("Could not generate thumbnail for {}", item->getLocation().c_str());
-    }
+    th.generateThumbnail(item->getLocation().c_str(), Jpeg, img);
     if (cache_enabled) {
         writeThumbnailCacheFile(item->getLocation(),
-            reinterpret_cast<std::byte*>(img->image_data_ptr), img->image_data_size);
+            reinterpret_cast<std::byte*>(img.data()), img.size());
     }
 
-    return std::make_unique<MemIOHandler>(reinterpret_cast<void*>(img->image_data_ptr), img->image_data_size);
+    return std::make_unique<MemIOHandler>(img.data(), img.size());
 #else
     return nullptr;
 #endif
@@ -438,7 +411,6 @@ std::unique_ptr<IOHandler> FfmpegHandler::serveContent(std::shared_ptr<CdsObject
 std::string FfmpegHandler::getMimeType()
 {
     auto mappings = config->getDictionaryOption(CFG_IMPORT_MAPPINGS_MIMETYPE_TO_CONTENTTYPE_LIST);
-    std::string thumb_mimetype = getValueOrDefault(mappings, CONTENT_TYPE_JPG, "image/jpeg");
-    return thumb_mimetype;
+    return getValueOrDefault(mappings, CONTENT_TYPE_JPG, "image/jpeg");
 }
 #endif // HAVE_FFMPEG

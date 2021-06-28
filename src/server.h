@@ -49,14 +49,16 @@ class ContentManager;
 class Server : public std::enable_shared_from_this<Server> {
 public:
     explicit Server(std::shared_ptr<Config> config);
+    virtual ~Server();
+
+    Server(const Server&) = delete;
+    Server& operator=(const Server&) = delete;
 
     /// \brief Initializes the server.
     ///
     /// This function reads information from the config and initializes
     /// various variables (like server UDN and so forth).
     virtual void init();
-
-    virtual ~Server();
 
     /// \brief Cleanup routine to shutdown the server.
     ///
@@ -78,7 +80,7 @@ public:
     /// the port is also specified in the config, we can never be sure
     /// that we actually get that port after startup. This function
     /// contains the port on which the server is actually running.
-    std::string getVirtualUrl();
+    std::string getVirtualUrl() const;
 
     /// \brief Tells if the server is about to be terminated.
     ///
@@ -231,7 +233,7 @@ protected:
     void writeBookmark(const std::string& addr);
     void emptyBookmark();
 
-    std::string getPresentationUrl();
+    std::string getPresentationUrl() const;
     int startupInterface(const std::string& iface, in_port_t port);
 };
 

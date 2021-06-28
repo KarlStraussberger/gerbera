@@ -49,6 +49,9 @@ public:
     MySQLDatabase(const MySQLDatabase&) = delete;
     MySQLDatabase& operator=(const MySQLDatabase&) = delete;
 
+protected:
+    void _exec(const char* query, int length = -1) override;
+
 private:
     void init() override;
     void shutdownDriver() override;
@@ -64,16 +67,14 @@ private:
     std::string quote(bool val) const override { return fmt::to_string(val ? '1' : '0'); }
     std::string quote(char val) const override { return quote(fmt::to_string(val)); }
     std::string quote(long long val) const override { return fmt::to_string(val); }
-    std::shared_ptr<SQLResult> select(const char* query, int length) override;
-    int exec(const char* query, int length, bool getLastInsertId = false) override;
+    std::shared_ptr<SQLResult> select(const char* query, size_t length) override;
+    int exec(const char* query, size_t length, bool getLastInsertId = false) override;
 
     void beginTransaction(const std::string_view& tName) override;
     void rollback(const std::string_view& tName) override;
     void commit(const std::string_view& tName) override;
 
     void storeInternalSetting(const std::string& key, const std::string& value) override;
-
-    void _exec(const char* query, int length = -1);
 
     MYSQL db {};
 
@@ -92,14 +93,17 @@ private:
 
 class MysqlResult : public SQLResult {
 public:
-    explicit MysqlResult(MYSQL_RES* mysql_res);
+    explicit MysqlResult(MYSQL_RES* mysql_res)
+        : mysql_res(mysql_res)
+    {
+    }
     ~MysqlResult() override;
 
     MysqlResult(const MysqlResult&) = delete;
     MysqlResult& operator=(const MysqlResult&) = delete;
 
 private:
-    int nullRead;
+    int nullRead {};
     std::unique_ptr<SQLRow> nextRow() override;
     unsigned long long getNumRows() const override { return mysql_num_rows(mysql_res); }
     MYSQL_RES* mysql_res;

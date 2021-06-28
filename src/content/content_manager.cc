@@ -1123,7 +1123,7 @@ std::pair<int, bool> ContentManager::addContainerTree(const std::vector<std::sha
 
 std::pair<int, bool> ContentManager::addContainerChain(const std::string& chain, const std::string& lastClass, int lastRefID, const std::shared_ptr<CdsObject>& origObj)
 {
-    std::map<std::string, std::string> lastMetadata = origObj != nullptr ? origObj->getMetadata() : std::map<std::string, std::string>();
+    auto lastMetadata = origObj != nullptr ? origObj->getMetadata() : std::map<std::string, std::string> {};
     std::vector<int> updateID;
     bool isNew = false;
 
@@ -1145,10 +1145,7 @@ std::pair<int, bool> ContentManager::addContainerChain(const std::string& chain,
 
     constexpr auto unwanted = std::array { M_DESCRIPTION, M_TITLE, M_TRACKNUMBER, M_ARTIST }; // not wanted for container!
     for (auto&& unw : unwanted) {
-        const auto itm = lastMetadata.find(MetadataHandler::getMetaFieldName(unw));
-        if (itm != lastMetadata.end()) {
-            lastMetadata.erase(itm);
-        }
+        lastMetadata.erase(MetadataHandler::getMetaFieldName(unw));
     }
     int containerID = INVALID_OBJECT_ID;
     std::vector<std::shared_ptr<CdsContainer>> containerList;
@@ -1899,7 +1896,7 @@ CMRemoveObjectTask::CMRemoveObjectTask(std::shared_ptr<ContentManager> content, 
     , rescanResource(rescanResource)
 {
     this->taskType = RemoveObject;
-    cancellable = false;
+    this->cancellable = false;
 }
 
 void CMRemoveObjectTask::run()

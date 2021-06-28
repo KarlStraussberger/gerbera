@@ -70,7 +70,7 @@ std::vector<fs::path> ContentPathSetup::getContentPath(const std::shared_ptr<Cds
                 result.push_back(found);
             }
         } else {
-            auto fileNames = std::map<std::string, fs::path>();
+            std::map<std::string, fs::path> fileNames;
             std::error_code ec;
             for (auto&& p : fs::directory_iterator(folder, ec))
                 if (isRegularFile(p, ec))
@@ -157,11 +157,6 @@ std::string ContentPathSetup::expandName(const std::string& name, const std::sha
         replaceString(copy, "%filename%", location.filename().string().c_str());
     }
     return copy;
-}
-
-MetacontentHandler::MetacontentHandler(const std::shared_ptr<Context>& context)
-    : MetadataHandler(context)
-{
 }
 
 std::unique_ptr<ContentPathSetup> FanArtHandler::setup {};

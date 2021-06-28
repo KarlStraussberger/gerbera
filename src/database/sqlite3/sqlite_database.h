@@ -94,7 +94,10 @@ protected:
 class SLInitTask : public SLTask {
 public:
     /// \brief Constructor for the sqlite3 init task
-    explicit SLInitTask(std::shared_ptr<Config> config);
+    explicit SLInitTask(std::shared_ptr<Config> config)
+        : config(std::move(config))
+    {
+    }
     void run(sqlite3** db, Sqlite3Database* sl) override;
 
     std::string_view taskType() const override { return "InitTask"; }
@@ -108,7 +111,10 @@ class SLSelectTask : public SLTask {
 public:
     /// \brief Constructor for the sqlite3 select task
     /// \param query The SQL query string
-    explicit SLSelectTask(const char* query);
+    explicit SLSelectTask(const char* query)
+        : query(query)
+    {
+    }
     void run(sqlite3** db, Sqlite3Database* sl) override;
     [[nodiscard]] std::shared_ptr<SQLResult> getResult() const { return std::static_pointer_cast<SQLResult>(pres); }
 
@@ -160,6 +166,9 @@ public:
     void timerNotify(std::shared_ptr<Timer::Parameter> param) override;
     Sqlite3Database(std::shared_ptr<Config> config, std::shared_ptr<Mime> mime, std::shared_ptr<Timer> timer);
 
+protected:
+    void _exec(const char* query, int length = -1) override;
+
 private:
     void prepare();
     void init() override;
@@ -177,16 +186,14 @@ private:
     std::string quote(char val) const override { return quote(std::string(1, val)); }
     std::string quote(long long val) const override { return fmt::to_string(val); }
 
-    std::shared_ptr<SQLResult> select(const char* query, int length) override;
-    int exec(const char* query, int length, bool getLastInsertId = false) override;
+    std::shared_ptr<SQLResult> select(const char* query, size_t length) override;
+    int exec(const char* query, size_t length, bool getLastInsertId = false) override;
 
     void beginTransaction(const std::string_view& tName) override;
     void rollback(const std::string_view& tName) override;
     void commit(const std::string_view& tName) override;
 
     void storeInternalSetting(const std::string& key, const std::string& value) override;
-
-    void _exec(const char* query);
 
     std::string startupError;
 
@@ -250,7 +257,10 @@ private:
 /// \brief Represents a row of a result of a sqlite3 select
 class Sqlite3Row : public SQLRow {
 public:
-    explicit Sqlite3Row(char** row);
+    explicit Sqlite3Row(char** row)
+        : row(row)
+    {
+    }
 
 private:
     char* col_c_str(int index) const override { return row[index]; }

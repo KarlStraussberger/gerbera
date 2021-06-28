@@ -439,7 +439,7 @@ bool UpnpXMLBuilder::renderSubtitle(const std::string& virtualURL, const std::sh
     bool srtAdded = false;
     int realCount = 0;
     for (auto&& res : item->getResources()) {
-        if (res->isMetaResource(VIDEO_SUB)) {
+        if (res->isMetaResource(VIDEO_SUB, CH_SUBTITLE)) {
             url = renderOneResource(virtualURL, item, res, realCount);
             srtAdded = true;
             break;
@@ -451,18 +451,17 @@ bool UpnpXMLBuilder::renderSubtitle(const std::string& virtualURL, const std::sh
 
 std::string UpnpXMLBuilder::renderExtension(const std::string& contentType, const fs::path& location)
 {
-    std::string ext = RequestHandler::joinUrl({ URL_FILE_EXTENSION, "file" });
+    auto&& ext = RequestHandler::joinUrl({ URL_FILE_EXTENSION, "file" });
 
     if (!contentType.empty() && (contentType != CONTENT_TYPE_PLAYLIST)) {
         return fmt::format("{}.{}", ext, contentType);
     }
 
     if (!location.empty() && location.has_extension()) {
-        std::string extension = location.filename().string();
-        // make sure that the extension does not contain the separator character
-        if (extension.find(URL_PARAM_SEPARATOR) == std::string::npos) {
-            return fmt::format("{}.{}", ext, extension);
-        }
+        // make sure that the filename does not contain the separator character
+        auto&& filename = urlEscape(location.filename().stem().string());
+        auto&& extension = location.filename().extension().string();
+        return fmt::format("{}.{}{}", ext, (filename), extension);
     }
 
     return "";
@@ -680,15 +679,15 @@ void UpnpXMLBuilder::addResources(const std::shared_ptr<CdsItem>& item, pugi::xm
                 continue;
             }
         }
-        if (isFirstSub && res->isMetaResource(VIDEO_SUB)) {
+        if (isFirstSub && res->isMetaResource(VIDEO_SUB, CH_SUBTITLE)) {
             auto vs = parent->append_child("sec:CaptionInfoEx");
-            url.append(renderExtension("", res->getAttribute(R_RESOURCE_FILE)));
-            vs.append_child(pugi::node_pcdata).set_value((virtualURL + url).c_str());
+            auto subUrl = url;
+            subUrl.append(renderExtension("", res->getAttribute(R_RESOURCE_FILE)));
+            vs.append_child(pugi::node_pcdata).set_value((virtualURL + subUrl).c_str());
             vs.append_attribute("sec:type") = res->getAttribute(R_TYPE).c_str();
             vs.append_attribute(MetadataHandler::getResAttrName(R_LANGUAGE).c_str()) = res->getAttribute(R_LANGUAGE).c_str();
             vs.append_attribute(MetadataHandler::getResAttrName(R_PROTOCOLINFO).c_str()) = protocolInfo.c_str();
             isFirstSub = false;
-            continue;
         }
 
         if (!isExtThumbnail) {

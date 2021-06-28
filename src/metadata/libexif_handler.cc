@@ -40,11 +40,6 @@
 #include "util/string_converter.h"
 #include "util/tools.h"
 
-LibExifHandler::LibExifHandler(const std::shared_ptr<Context>& context)
-    : MetadataHandler(context)
-{
-}
-
 /// \brief Sets resolution for a given resource index, item must be a JPEG image
 static void setJpegResolutionResource(const std::shared_ptr<CdsItem>& item, size_t res_num)
 {
@@ -183,7 +178,7 @@ void LibExifHandler::process_ifd(ExifContent* content, const std::shared_ptr<Cds
     std::array<char, BUFLEN> exif_entry_buffer;
 #define exif_egv(arg) exif_entry_get_value(arg, exif_entry_buffer.data(), BUFLEN)
 
-    for (unsigned int i = 0; i < content->count; i++) {
+    for (size_t i = 0; i < content->count; i++) {
         ExifEntry* e = content->entries[i];
 
         // log_debug("Processing entry: {}", i);
