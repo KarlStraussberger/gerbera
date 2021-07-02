@@ -98,12 +98,14 @@ std::string StringConverter::_convert(const std::string& str, bool validate,
         log_debug("Could not determine memory for string conversion!");
         throw_std_runtime_error("Could not determine memory for string conversion");
     }
-    auto output = new char[length];
-    if (!output) {
-        log_debug("Could not allocate memory for string conversion!");
+
+    char* output = {};
+    try {
+        output = new char[length];
+    } catch (const std::bad_alloc& ex) {
+        log_debug("Could not allocate memory for string conversion!\n{}", ex.what());
         throw_std_runtime_error("Could not allocate memory for string conversion");
     }
-
     const char* input_copy = input;
     char* output_copy = output;
 
@@ -199,7 +201,7 @@ std::unique_ptr<StringConverter> StringConverter::m2i(config_option_t option, co
         charset = cm->getOption(CFG_IMPORT_METADATA_CHARSET);
     }
     auto tweak = cm->getDirectoryTweakOption(CFG_IMPORT_DIRECTORIES_LIST)->get(!location.empty() ? location : "/");
-    if (tweak != nullptr && tweak->hasMetaCharset()) {
+    if (tweak && tweak->hasMetaCharset()) {
         charset = tweak->getMetaCharset();
         log_debug("Using charset {} for {}", charset, location.string());
     }

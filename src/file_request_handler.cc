@@ -101,7 +101,7 @@ void FileRequestHandler::getInfo(const char* filename, UpnpFileInfo* info)
 
     auto item = std::dynamic_pointer_cast<CdsItem>(obj);
 
-    fs::path path = item != nullptr ? item->getLocation() : "";
+    fs::path path = item ? item->getLocation() : "";
     std::string mimeType;
     struct stat statbuf;
     bool is_srt = checkFileAndSubtitle(path, obj, res_id, mimeType, statbuf, rh);
@@ -157,8 +157,7 @@ void FileRequestHandler::getInfo(const char* filename, UpnpFileInfo* info)
 
         mimeType = tp->getTargetMimeType();
 
-        auto mappings = config->getDictionaryOption(
-            CFG_IMPORT_MAPPINGS_MIMETYPE_TO_CONTENTTYPE_LIST);
+        auto mappings = config->getDictionaryOption(CFG_IMPORT_MAPPINGS_MIMETYPE_TO_CONTENTTYPE_LIST);
         if (getValueOrDefault(mappings, mimeType) == CONTENT_TYPE_PCM) {
             std::string freq = obj->getResource(0)->getAttribute(R_SAMPLEFREQUENCY);
             std::string nrch = obj->getResource(0)->getAttribute(R_NRAUDIOCHANNELS);
@@ -173,20 +172,19 @@ void FileRequestHandler::getInfo(const char* filename, UpnpFileInfo* info)
 #else
         UpnpFileInfo_set_FileLength(info, -1);
 #endif
-    } else if (item != nullptr) {
+    } else if (item) {
         UpnpFileInfo_set_FileLength(info, statbuf.st_size);
 
         quirks->addCaptionInfo(item, headers);
 
-        auto mappings = config->getDictionaryOption(
-            CFG_IMPORT_MAPPINGS_MIMETYPE_TO_CONTENTTYPE_LIST);
+        auto mappings = config->getDictionaryOption(CFG_IMPORT_MAPPINGS_MIMETYPE_TO_CONTENTTYPE_LIST);
         std::string dlnaContentHeader = getDLNAContentHeader(config, getValueOrDefault(mappings, item->getMimeType()));
         if (!dlnaContentHeader.empty()) {
             headers->addHeader(UPNP_DLNA_CONTENT_FEATURES_HEADER, dlnaContentHeader);
         }
     }
 
-    if (mimeType.empty() && item != nullptr)
+    if (mimeType.empty() && item)
         mimeType = item->getMimeType();
 
     std::string dlnaTransferHeader = getDLNATransferHeader(config, mimeType);
@@ -206,7 +204,7 @@ void FileRequestHandler::getInfo(const char* filename, UpnpFileInfo* info)
     // log_debug("getInfo: Requested {}, ObjectID: {}, Location: {}, MimeType: {}",
     //      filename, object_id.c_str(), path.c_str(), info->content_type);
 
-    log_debug("web_get_info(): end");
+    log_debug("end");
 }
 
 std::unique_ptr<IOHandler> FileRequestHandler::open(const char* filename, enum UpnpOpenFileMode mode)
@@ -232,7 +230,7 @@ std::unique_ptr<IOHandler> FileRequestHandler::open(const char* filename, enum U
 
     auto item = std::dynamic_pointer_cast<CdsItem>(obj);
 
-    fs::path path = item != nullptr ? item->getLocation() : "";
+    fs::path path = item ? item->getLocation() : "";
     std::string mimeType;
     struct stat statbuf;
     bool is_srt = checkFileAndSubtitle(path, obj, res_id, mimeType, statbuf, rh);
