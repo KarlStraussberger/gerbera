@@ -53,13 +53,6 @@ static const std::unordered_map<std::string_view, TokenType> tokenTypes {
     { "or", TokenType::OR }
 };
 
-static std::string aslowercase(const std::string& src)
-{
-    std::string copy = src;
-    std::transform(copy.begin(), copy.end(), copy.begin(), ::tolower);
-    return copy;
-}
-
 std::unique_ptr<SearchToken> SearchLexer::nextToken()
 {
     for (; currentPos < input.length();) {
@@ -161,7 +154,7 @@ std::string SearchLexer::nextStringToken(const std::string& input)
 
 std::unique_ptr<SearchToken> SearchLexer::makeToken(const std::string& tokenStr)
 {
-    auto itr = tokenTypes.find(aslowercase(tokenStr));
+    auto itr = tokenTypes.find(toLower(tokenStr));
     if (itr != tokenTypes.end()) {
         return std::make_unique<SearchToken>(itr->second, tokenStr);
     }
@@ -186,25 +179,25 @@ std::shared_ptr<ASTNode> SearchParser::parseSearchExpression()
 {
     std::stack<std::shared_ptr<ASTNode>> nodeStack;
     std::stack<TokenType> operatorStack;
-    std::shared_ptr<ASTNode> root = nullptr;
-    std::shared_ptr<ASTNode> expressionNode = nullptr;
+    std::shared_ptr<ASTNode> root;
+    std::shared_ptr<ASTNode> expressionNode;
     TokenType currentOperator = TokenType::INVALID;
     while (currentToken) {
         if (currentToken->getType() == TokenType::PROPERTY) {
             expressionNode = parseRelationshipExpression();
             if (currentOperator == TokenType::AND) {
-                if (nodeStack.top() == nullptr)
+                if (!nodeStack.top())
                     throw_std_runtime_error("Cannot construct ASTAndOperator without lhs");
-                if (expressionNode == nullptr)
+                if (!expressionNode)
                     throw_std_runtime_error("Cannot construct ASTAndOperator without rhs");
                 std::shared_ptr<ASTNode> lhs(nodeStack.top());
                 nodeStack.pop();
                 nodeStack.push(std::make_shared<ASTAndOperator>(sqlEmitter, lhs, expressionNode));
                 operatorStack.pop();
             } else if (currentOperator == TokenType::OR) {
-                if (nodeStack.top() == nullptr)
+                if (!nodeStack.top())
                     throw_std_runtime_error("Cannot construct ASTOrOperator without lhs");
-                if (expressionNode == nullptr)
+                if (!expressionNode)
                     throw_std_runtime_error("Cannot construct ASTOrOperator without rhs");
                 std::shared_ptr<ASTNode> lhs(nodeStack.top());
                 nodeStack.pop();
@@ -250,9 +243,9 @@ std::shared_ptr<ASTNode> SearchParser::parseParenthesis()
     if (currentToken->getType() != TokenType::LPAREN)
         throw_std_runtime_error("Failed to parse search criteria - expecting a ')'");
 
-    std::shared_ptr<ASTNode> currentNode = nullptr;
-    std::shared_ptr<ASTNode> lhsNode = nullptr;
-    std::shared_ptr<ASTNode> rhsNode = nullptr;
+    std::shared_ptr<ASTNode> currentNode;
+    std::shared_ptr<ASTNode> lhsNode;
+    std::shared_ptr<ASTNode> rhsNode;
     getNextToken();
     while (currentToken && currentToken->getType() != TokenType::RPAREN) {
         // just call parseSearchExpression() at this point?
@@ -282,7 +275,7 @@ std::shared_ptr<ASTNode> SearchParser::parseParenthesis()
             getNextToken();
         }
     }
-    if (currentNode == nullptr)
+    if (!currentNode)
         throw_std_runtime_error("Failed to parse search criteria - bad expression between parenthesis");
 
     return std::make_shared<ASTParenthesis>(sqlEmitter, currentNode);
@@ -482,10 +475,10 @@ static const std::map<std::string, std::string> logicOperator = {
 std::pair<std::string, std::string> DefaultSQLEmitter::getPropertyStatement(const std::string& property) const
 {
     if (colMapper && colMapper->hasEntry(property)) {
-        return std::make_pair(colMapper->mapQuoted(property), colMapper->mapQuotedLower(property));
+        return std::pair(colMapper->mapQuoted(property), colMapper->mapQuotedLower(property));
     }
     if (metaMapper) {
-        return std::make_pair(
+        return std::pair(
             fmt::format("{0}='{2}' AND {1}", metaMapper->mapQuoted(META_NAME), metaMapper->mapQuoted(META_VALUE), property),
             fmt::format("{0}='{2}' AND {1}", metaMapper->mapQuoted(META_NAME), metaMapper->mapQuotedLower(META_VALUE), property));
     }
@@ -514,7 +507,7 @@ std::string DefaultSQLEmitter::emit(const ASTCompareOperator* node, const std::s
 
 std::string DefaultSQLEmitter::emit(const ASTStringOperator* node, const std::string& property, const std::string& value) const
 {
-    auto stringOperator = aslowercase(node->getValue());
+    auto stringOperator = toLower(node->getValue());
     if (logicOperator.find(stringOperator) == logicOperator.end()) {
         throw_std_runtime_error("Operation '{}' not yet supported", stringOperator);
     }

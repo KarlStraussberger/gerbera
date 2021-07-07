@@ -417,6 +417,7 @@ the removed directory if it becomes available/gets created again.
 
         Allowed values: ``yes`` or ``no``, process hidden files, overrides the hidden-files value in the ``<import/>`` tag.
 
+
 ``system-directories``
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -449,6 +450,41 @@ If the element does not exists, the default list of system directories is set to
         * Required
 
         Absolute path to the directory that shall be hidden.
+
+
+``visible-directories``
+~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+    <visible-directories>
+
+* Optional
+
+Specifies a list of system directories visible in filesystem web ui. It can contain any path which is accessible by the gerbera server.
+
+If the element exists it supercedes ``system-directories``, i.e. only visible directories can be selected in web ui.
+This is the more forward way of defining content but cannot be defaulted.
+
+    **Child tags:**
+
+    ::
+
+        <add-path name="/home/media"/>
+
+    * Optional
+
+    Defines a visible directory.
+
+    The attributes specify various options:
+
+        ::
+
+            name=...
+
+        * Required
+
+        Absolute path to the directory that shall be visible.
 
 
 ``layout``
@@ -721,8 +757,8 @@ Note:
     extension is case sensitive, this will probably need to be fixed.
 
 
-``mime-type-upnpclass``
-~~~~~~~~~~~~~~~~~~~~~~~
+``mimetype-upnpclass``
+~~~~~~~~~~~~~~~~~~~~~~
 
 ::
 
@@ -818,6 +854,33 @@ The ``as`` attribute can have following values:
 |                                   |               | | FourCC extraction will be attempted. |
 |                                   |               |                                        |
 +-----------------------------------+---------------+----------------------------------------+
+
+
+``contenttype-dlnaprofile``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+    <contenttype-dlnaprofile>
+
+* Optional
+
+This section holds the content type to dlnaprofile mappings.
+
+
+**Child tags:**
+
+``map``
+-------
+
+::
+
+     <map from="mp4" to="AVC_MP4_BL_CIF30_AAC_MULT5"/>
+
+* Optional
+
+Specifies a mapping from a certain content type to a dlna profile in the Content Directory. The values of **from** and **to**
+attributes are case sensitive.
 
 
 ``library-options``

@@ -150,7 +150,7 @@ duk_ret_t js_addCdsObject(duk_context* ctx)
         }
 
         auto orig_object = self->dukObject2cdsObject(self->getProcessedObject());
-        if (orig_object == nullptr)
+        if (!orig_object)
             return 0;
 
         std::shared_ptr<CdsObject> cds_obj;
@@ -192,11 +192,11 @@ duk_ret_t js_addCdsObject(duk_context* ctx)
         } else
             cds_obj = self->dukObject2cdsObject(orig_object);
 
-        if (cds_obj == nullptr) {
+        if (!cds_obj) {
             return 0;
         }
 
-        std::pair<int, bool> parentId = { stoiString(ts), false };
+        auto parentId = std::pair(stoiString(ts), false);
 
         if (parentId.first <= 0) {
             if ((self->whoami() == S_PLAYLIST) && (self->getConfig()->getBoolOption(CFG_IMPORT_SCRIPTING_PLAYLIST_SCRIPT_LINK_OBJECTS))) {

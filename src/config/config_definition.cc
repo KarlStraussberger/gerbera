@@ -210,6 +210,16 @@ static std::map<std::string, std::string> mt_ct_defaults {
     { "audio/x-dsd", CONTENT_TYPE_DSD },
 };
 
+/// \brief default values for CFG_IMPORT_MAPPINGS_CONTENTTYPE_TO_DLNAPROFILE_LIST
+static const std::map<std::string, std::string> ct_dlna_defaults = {
+    { CONTENT_TYPE_MP4, UPNP_DLNA_PROFILE_AVC_MP4_EU },
+    { CONTENT_TYPE_MKV, UPNP_DLNA_PROFILE_MKV },
+    { CONTENT_TYPE_AVI, UPNP_DLNA_PROFILE_AVI },
+    { CONTENT_TYPE_MPEG, UPNP_DLNA_PROFILE_MPEG_PS_PAL },
+    { CONTENT_TYPE_MP3, UPNP_DLNA_PROFILE_MP3 },
+    { CONTENT_TYPE_PCM, UPNP_DLNA_PROFILE_LPCM },
+};
+
 /// \brief default values for CFG_IMPORT_MAPPINGS_MIMETYPE_TO_UPNP_CLASS_LIST
 static std::map<std::string, std::string> mt_upnp_defaults {
     { "audio/*", UPNP_CLASS_MUSIC_TRACK },
@@ -511,13 +521,17 @@ const std::vector<std::shared_ptr<ConfigSetup>> ConfigDefinition::complexOptions
         "/import/mappings/extension-mimetype/attribute::case-sensitive", "config-import.html#extension-mimetype",
         DEFAULT_CASE_SENSITIVE_EXTENSION_MAPPINGS),
     std::make_shared<ConfigDictionarySetup>(CFG_IMPORT_MAPPINGS_MIMETYPE_TO_UPNP_CLASS_LIST,
-        "/import/mappings/mimetype-upnpclass", "config-import.html#mime-type-upnpclass",
+        "/import/mappings/mimetype-upnpclass", "config-import.html#mimetype-upnpclass",
         ATTR_IMPORT_MAPPINGS_MIMETYPE_MAP, ATTR_IMPORT_MAPPINGS_MIMETYPE_FROM, ATTR_IMPORT_MAPPINGS_MIMETYPE_TO,
         false, false, true, std::move(mt_upnp_defaults)),
     std::make_shared<ConfigDictionarySetup>(CFG_IMPORT_MAPPINGS_MIMETYPE_TO_CONTENTTYPE_LIST,
-        "/import/mappings/mimetype-contenttype", "config-import.html#mime-type-upnpclass",
+        "/import/mappings/mimetype-contenttype", "config-import.html#mimetype-contenttype",
         ATTR_IMPORT_MAPPINGS_M2CTYPE_LIST_TREAT, ATTR_IMPORT_MAPPINGS_M2CTYPE_LIST_MIMETYPE, ATTR_IMPORT_MAPPINGS_M2CTYPE_LIST_AS,
         false, false, true, std::move(mt_ct_defaults)),
+    std::make_shared<ConfigDictionarySetup>(CFG_IMPORT_MAPPINGS_CONTENTTYPE_TO_DLNAPROFILE_LIST,
+        "/import/mappings/contenttype-dlnaprofile", "config-import.html#contenttype-dlnaprofile",
+        ATTR_IMPORT_MAPPINGS_MIMETYPE_MAP, ATTR_IMPORT_MAPPINGS_MIMETYPE_FROM, ATTR_IMPORT_MAPPINGS_MIMETYPE_TO,
+        false, false, true, std::move(ct_dlna_defaults)),
     std::make_shared<ConfigDictionarySetup>(CFG_IMPORT_LAYOUT_MAPPING,
         "/import/layout", "config-import.html#layout",
         ATTR_IMPORT_LAYOUT_MAPPING_PATH, ATTR_IMPORT_LAYOUT_MAPPING_FROM, ATTR_IMPORT_LAYOUT_MAPPING_TO),
@@ -655,6 +669,9 @@ const std::vector<std::shared_ptr<ConfigSetup>> ConfigDefinition::complexOptions
         "/import/system-directories", "config-import.html#system-directories",
         ATTR_IMPORT_SYSTEM_DIR_ADD_PATH, ATTR_IMPORT_RESOURCES_NAME, true, true,
         std::move(excludes_fullpath)),
+    std::make_shared<ConfigArraySetup>(CFG_IMPORT_VISIBLE_DIRECTORIES,
+        "/import/visible-directories", "config-import.html#visible-directories",
+        ATTR_IMPORT_SYSTEM_DIR_ADD_PATH, ATTR_IMPORT_RESOURCES_NAME),
 
 #if defined(HAVE_FFMPEG) && defined(HAVE_FFMPEGTHUMBNAILER)
     std::make_shared<ConfigBoolSetup>(CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_ENABLED,
@@ -1114,11 +1131,19 @@ const std::map<config_option_t, std::vector<config_option_t>> ConfigDefinition::
 
     { ATTR_TRANSCODING_MIMETYPE_PROF_MAP_MIMETYPE, {} },
 
-    { ATTR_IMPORT_MAPPINGS_M2CTYPE_LIST_MIMETYPE, { CFG_IMPORT_MAPPINGS_MIMETYPE_TO_CONTENTTYPE_LIST } },
-    { ATTR_IMPORT_MAPPINGS_M2CTYPE_LIST_TREAT, { CFG_IMPORT_MAPPINGS_MIMETYPE_TO_CONTENTTYPE_LIST } },
-    { ATTR_IMPORT_MAPPINGS_M2CTYPE_LIST_AS, { CFG_IMPORT_MAPPINGS_MIMETYPE_TO_CONTENTTYPE_LIST } },
-    { ATTR_IMPORT_MAPPINGS_MIMETYPE_FROM, { CFG_IMPORT_MAPPINGS_EXTENSION_TO_MIMETYPE_LIST, CFG_IMPORT_MAPPINGS_MIMETYPE_TO_CONTENTTYPE_LIST, CFG_IMPORT_MAPPINGS_MIMETYPE_TO_UPNP_CLASS_LIST, CFG_IMPORT_SOPCAST_MIMETYE_LIST } },
-    { ATTR_IMPORT_MAPPINGS_MIMETYPE_TO, { CFG_IMPORT_MAPPINGS_EXTENSION_TO_MIMETYPE_LIST, CFG_IMPORT_MAPPINGS_MIMETYPE_TO_CONTENTTYPE_LIST, CFG_IMPORT_MAPPINGS_MIMETYPE_TO_UPNP_CLASS_LIST, CFG_IMPORT_SOPCAST_MIMETYE_LIST } },
+    { ATTR_IMPORT_MAPPINGS_M2CTYPE_LIST_MIMETYPE, { CFG_IMPORT_MAPPINGS_MIMETYPE_TO_CONTENTTYPE_LIST, CFG_IMPORT_MAPPINGS_CONTENTTYPE_TO_DLNAPROFILE_LIST } },
+    { ATTR_IMPORT_MAPPINGS_M2CTYPE_LIST_TREAT, { CFG_IMPORT_MAPPINGS_MIMETYPE_TO_CONTENTTYPE_LIST, CFG_IMPORT_MAPPINGS_CONTENTTYPE_TO_DLNAPROFILE_LIST } },
+    { ATTR_IMPORT_MAPPINGS_M2CTYPE_LIST_AS, { CFG_IMPORT_MAPPINGS_MIMETYPE_TO_CONTENTTYPE_LIST, CFG_IMPORT_MAPPINGS_CONTENTTYPE_TO_DLNAPROFILE_LIST } },
+    { ATTR_IMPORT_MAPPINGS_MIMETYPE_FROM, { CFG_IMPORT_MAPPINGS_EXTENSION_TO_MIMETYPE_LIST, CFG_IMPORT_MAPPINGS_MIMETYPE_TO_CONTENTTYPE_LIST, CFG_IMPORT_MAPPINGS_MIMETYPE_TO_UPNP_CLASS_LIST, CFG_IMPORT_MAPPINGS_CONTENTTYPE_TO_DLNAPROFILE_LIST,
+#ifdef SOPCAST
+                                              CFG_IMPORT_SOPCAST_MIMETYE_LIST
+#endif
+                                          } },
+    { ATTR_IMPORT_MAPPINGS_MIMETYPE_TO, { CFG_IMPORT_MAPPINGS_EXTENSION_TO_MIMETYPE_LIST, CFG_IMPORT_MAPPINGS_MIMETYPE_TO_CONTENTTYPE_LIST, CFG_IMPORT_MAPPINGS_MIMETYPE_TO_UPNP_CLASS_LIST, CFG_IMPORT_MAPPINGS_CONTENTTYPE_TO_DLNAPROFILE_LIST,
+#ifdef SOPCAST
+                                            CFG_IMPORT_SOPCAST_MIMETYE_LIST
+#endif
+                                        } },
 
     { ATTR_IMPORT_RESOURCES_NAME, { CFG_IMPORT_RESOURCES_FANART_FILE_LIST, CFG_IMPORT_RESOURCES_CONTAINERART_FILE_LIST, CFG_IMPORT_RESOURCES_RESOURCE_FILE_LIST, CFG_IMPORT_RESOURCES_SUBTITLE_FILE_LIST, //
                                       CFG_IMPORT_RESOURCES_FANART_DIR_LIST, CFG_IMPORT_RESOURCES_CONTAINERART_DIR_LIST, CFG_IMPORT_RESOURCES_RESOURCE_DIR_LIST, CFG_IMPORT_RESOURCES_SUBTITLE_DIR_LIST, //
@@ -1133,6 +1158,44 @@ const std::map<config_option_t, std::vector<config_option_t>> ConfigDefinition::
 #endif
 };
 
+/// \brief define option dependencies for automatic loading
+const std::map<config_option_t, config_option_t> ConfigDefinition::dependencyMap = {
+    { CFG_SERVER_STORAGE_SQLITE_DATABASE_FILE, CFG_SERVER_STORAGE_SQLITE_ENABLED },
+    { CFG_SERVER_STORAGE_SQLITE_SYNCHRONOUS, CFG_SERVER_STORAGE_SQLITE_ENABLED },
+    { CFG_SERVER_STORAGE_SQLITE_RESTORE, CFG_SERVER_STORAGE_SQLITE_ENABLED },
+    { CFG_SERVER_STORAGE_SQLITE_BACKUP_ENABLED, CFG_SERVER_STORAGE_SQLITE_ENABLED },
+    { CFG_SERVER_STORAGE_SQLITE_BACKUP_INTERVAL, CFG_SERVER_STORAGE_SQLITE_ENABLED },
+    { CFG_SERVER_STORAGE_SQLITE_INIT_SQL_FILE, CFG_SERVER_STORAGE_SQLITE_ENABLED },
+    { CFG_SERVER_STORAGE_SQLITE_UPGRADE_FILE, CFG_SERVER_STORAGE_SQLITE_ENABLED },
+#ifdef HAVE_MYSQL
+    { CFG_SERVER_STORAGE_MYSQL_HOST, CFG_SERVER_STORAGE_MYSQL },
+    { CFG_SERVER_STORAGE_MYSQL_DATABASE, CFG_SERVER_STORAGE_MYSQL },
+    { CFG_SERVER_STORAGE_MYSQL_USERNAME, CFG_SERVER_STORAGE_MYSQL },
+    { CFG_SERVER_STORAGE_MYSQL_PORT, CFG_SERVER_STORAGE_MYSQL },
+    { CFG_SERVER_STORAGE_MYSQL_SOCKET, CFG_SERVER_STORAGE_MYSQL },
+    { CFG_SERVER_STORAGE_MYSQL_PASSWORD, CFG_SERVER_STORAGE_MYSQL },
+    { CFG_SERVER_STORAGE_MYSQL_INIT_SQL_FILE, CFG_SERVER_STORAGE_MYSQL },
+    { CFG_SERVER_STORAGE_MYSQL_UPGRADE_FILE, CFG_SERVER_STORAGE_MYSQL },
+#endif
+#ifdef HAVE_CURL
+    { CFG_EXTERNAL_TRANSCODING_CURL_BUFFER_SIZE, CFG_TRANSCODING_TRANSCODING_ENABLED },
+    { CFG_EXTERNAL_TRANSCODING_CURL_FILL_SIZE, CFG_TRANSCODING_TRANSCODING_ENABLED },
+#endif
+#if defined(HAVE_FFMPEG) && defined(HAVE_FFMPEGTHUMBNAILER)
+    { CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_THUMBSIZE, CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_ENABLED },
+    { CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_SEEK_PERCENTAGE, CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_ENABLED },
+    { CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_FILMSTRIP_OVERLAY, CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_ENABLED },
+    { CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_WORKAROUND_BUGS, CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_ENABLED },
+    { CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_IMAGE_QUALITY, CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_ENABLED },
+    { CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_CACHE_DIR_ENABLED, CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_ENABLED },
+    { CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_CACHE_DIR, CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_ENABLED },
+#endif
+#if defined(HAVE_LASTFMLIB)
+    { CFG_SERVER_EXTOPTS_LASTFM_USERNAME, CFG_SERVER_EXTOPTS_LASTFM_ENABLED },
+    { CFG_SERVER_EXTOPTS_LASTFM_PASSWORD, CFG_SERVER_EXTOPTS_LASTFM_ENABLED },
+#endif
+};
+
 const char* ConfigDefinition::mapConfigOption(config_option_t option)
 {
     auto co = std::find_if(complexOptions.begin(), complexOptions.end(), [&](auto&& c) { return c->option == option; });
@@ -1140,6 +1203,11 @@ const char* ConfigDefinition::mapConfigOption(config_option_t option)
         return (*co)->xpath;
     }
     return "";
+}
+
+bool ConfigDefinition::isDependent(config_option_t option)
+{
+    return (dependencyMap.find(option) != dependencyMap.end());
 }
 
 std::shared_ptr<ConfigSetup> ConfigDefinition::findConfigSetup(config_option_t option, bool save)
@@ -1153,7 +1221,7 @@ std::shared_ptr<ConfigSetup> ConfigDefinition::findConfigSetup(config_option_t o
     if (save)
         return nullptr;
 
-    throw_std_runtime_error("Error in config code: {} tag not found", option);
+    throw_std_runtime_error("Error in config code: {} tag not found. CFG_MAX={}", option, CFG_MAX);
 }
 
 std::shared_ptr<ConfigSetup> ConfigDefinition::findConfigSetupByPath(const std::string& key, bool save, const std::shared_ptr<ConfigSetup>& parent)

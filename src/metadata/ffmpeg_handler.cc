@@ -275,7 +275,7 @@ void FfmpegHandler::addFfmpegResourceFields(const std::shared_ptr<CdsItem>& item
             x = config->getIntOption(CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_THUMBSIZE);
             std::string resolution = fmt::format("{}x{}", x, y);
             ffres->addAttribute(R_RESOLUTION, resolution);
-            item->addResource(ffres);
+            item->addResource(move(ffres));
             log_debug("Adding resource for video thumbnail");
         }
     }
@@ -291,7 +291,7 @@ static void FfmpegNoOutputStub(void* ptr, int level, const char* fmt, va_list vl
 void FfmpegHandler::fillMetadata(std::shared_ptr<CdsObject> obj)
 {
     auto item = std::dynamic_pointer_cast<CdsItem>(obj);
-    if (item == nullptr)
+    if (!item)
         return;
 
     log_debug("Running ffmpeg handler on {}", item->getLocation().c_str());
@@ -370,7 +370,7 @@ std::unique_ptr<IOHandler> FfmpegHandler::serveContent(std::shared_ptr<CdsObject
 {
 #ifdef HAVE_FFMPEGTHUMBNAILER
     auto item = std::dynamic_pointer_cast<CdsItem>(obj);
-    if (item == nullptr)
+    if (!item)
         return nullptr;
 
     if (!config->getBoolOption(CFG_SERVER_EXTOPTS_FFMPEGTHUMBNAILER_ENABLED))

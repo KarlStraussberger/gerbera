@@ -73,7 +73,7 @@ void web::configSave::process()
             auto item = fmt::format("data[{}][{}]", i, "item");
             auto status = fmt::format("data[{}][{}]", i, "status");
             bool success = false;
-            std::shared_ptr<ConfigSetup> cs = nullptr;
+            std::shared_ptr<ConfigSetup> cs;
             log_debug("save item {}='{}' {}", param(item), param(key), param(status));
             if (!param(key).empty() && param(key) != "-1") {
                 config_option_t option = CFG_MAX;
@@ -157,8 +157,8 @@ void web::configSave::process()
     if (action == "rescan" && !target.empty()) {
         if (target != "--all") {
             fs::path targetPath(target);
-            std::shared_ptr<AutoscanDirectory> autoscan = nullptr;
-            while (targetPath != "/" && autoscan == nullptr) {
+            std::shared_ptr<AutoscanDirectory> autoscan;
+            while (targetPath != "/" && !autoscan) {
                 autoscan = content->getAutoscanDirectory(targetPath);
                 targetPath = targetPath.parent_path();
             }

@@ -239,7 +239,7 @@ void LibExifHandler::process_ifd(ExifContent* content, const std::shared_ptr<Cds
 void LibExifHandler::fillMetadata(std::shared_ptr<CdsObject> obj)
 {
     auto item = std::dynamic_pointer_cast<CdsItem>(obj);
-    if (item == nullptr)
+    if (!item)
         return;
 
     auto sc = StringConverter::m2i(CFG_IMPORT_LIBOPTS_EXIF_CHARSET, item->getLocation(), config);
@@ -275,7 +275,7 @@ void LibExifHandler::fillMetadata(std::shared_ptr<CdsObject> obj)
             resource->addAttribute(R_PROTOCOLINFO, renderProtocolInfo(item->getMimeType()));
             resource->addAttribute(R_RESOLUTION, th_resolution);
             resource->addParameter(RESOURCE_CONTENT_TYPE, EXIF_THUMBNAIL);
-            item->addResource(resource);
+            item->addResource(move(resource));
         } catch (const std::runtime_error& e) {
             log_error("Something bad happened! {}", e.what());
         }
@@ -286,7 +286,7 @@ void LibExifHandler::fillMetadata(std::shared_ptr<CdsObject> obj)
 std::unique_ptr<IOHandler> LibExifHandler::serveContent(std::shared_ptr<CdsObject> obj, int resNum)
 {
     auto item = std::dynamic_pointer_cast<CdsItem>(obj);
-    if (item == nullptr)
+    if (!item)
         return nullptr;
 
     auto res = item->getResource(resNum);

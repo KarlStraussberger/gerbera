@@ -239,9 +239,8 @@ int main(int argc, char** argv, char** envp)
             uid_t actual_euid = geteuid();
 
             // get user info of requested user from passwd
-            struct passwd* user_id = getpwnam(user->c_str());
-
-            if (user_id == nullptr) {
+            auto user_id = getpwnam(user->c_str());
+            if (!user_id) {
                 log_error("Invalid user requested.");
                 exit(EXIT_FAILURE);
             }
@@ -329,7 +328,7 @@ int main(int argc, char** argv, char** envp)
 
             // x will make it fail if file exists
             auto pidf = ::fopen(pidfile->c_str(), "wx");
-            if (pidf == nullptr) {
+            if (!pidf) {
                 log_error("Pidfile {} exists. It may be that gerbera is already", pidfile->c_str());
                 log_error("running or the file is a leftover from an unclean shutdown.");
                 log_error("In that case, remove the file before starting gerbera.");
@@ -343,14 +342,11 @@ int main(int argc, char** argv, char** envp)
                 std::exit(EXIT_FAILURE);
             }
 
-            // convert to a string
-            auto pidstr = fmt::to_string(pid);
-            // add a newline
-            pidstr += "\n";
-
-            // write pid to file
-            if (::fputs(pidstr.c_str(), pidf) < 0) {
-                log_error("Could not write pidfile {}.", pidfile->c_str());
+            try {
+                // write pid to file
+                fmt::print(pidf, "{}\n", pid);
+            } catch (const std::system_error& ex) {
+                log_error("Could not write pidfile {}: {}.", pidfile->c_str(), ex.what());
                 std::exit(EXIT_FAILURE);
             }
             log_debug("Wrote pidfile {}.", pidfile->c_str());

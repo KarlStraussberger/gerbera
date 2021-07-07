@@ -75,8 +75,8 @@ void web::configLoad::createItem(pugi::xml_node& item, const std::string& name, 
         item.append_attribute("status") = "unchanged";
         item.append_attribute("source") = "database";
     } else {
-        item.append_attribute("status") = cs == nullptr || !cs->isDefaultValueUsed() ? "unchanged" : "default";
-        item.append_attribute("source") = cs == nullptr || !cs->isDefaultValueUsed() ? "config.xml" : "default";
+        item.append_attribute("status") = !cs || !cs->isDefaultValueUsed() ? "unchanged" : "default";
+        item.append_attribute("source") = !cs || !cs->isDefaultValueUsed() ? "config.xml" : "default";
     }
     item.append_attribute("origValue") = config->getOrigValue(name).c_str();
     item.append_attribute("defaultValue") = cs ? cs->getDefaultValue().c_str() : "";
@@ -370,7 +370,7 @@ void web::configLoad::process()
             if (!fourCCList.empty()) {
                 item = values.append_child("item");
                 createItem(item, cs->getItemPath(pr, ATTR_TRANSCODING_PROFILES_PROFLE, ATTR_TRANSCODING_PROFILES_PROFLE_AVI4CC, ATTR_TRANSCODING_PROFILES_PROFLE_AVI4CC_4CC), cs->option, ATTR_TRANSCODING_PROFILES_PROFLE_AVI4CC_4CC);
-                setValue(item, std::accumulate(std::next(fourCCList.begin()), fourCCList.end(), fourCCList[0], [](auto&& a, auto&& b) { return fmt::format("{}, {}", a.c_str(), b.c_str()); }));
+                setValue(item, std::accumulate(next(fourCCList.begin()), fourCCList.end(), fourCCList[0], [](auto&& a, auto&& b) { return fmt::format("{}, {}", a.c_str(), b.c_str()); }));
             }
         }
         pr++;

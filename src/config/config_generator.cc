@@ -49,7 +49,7 @@ std::shared_ptr<pugi::xml_node> ConfigGenerator::getNode(const std::string& tag)
 std::shared_ptr<pugi::xml_node> ConfigGenerator::setValue(const std::string& tag, const std::string& value, bool makeLastChild)
 {
     auto split = splitString(tag, '/');
-    std::shared_ptr<pugi::xml_node> result = nullptr;
+    std::shared_ptr<pugi::xml_node> result;
     if (!split.empty()) {
         std::string parent;
         std::string nodeKey;
@@ -117,7 +117,7 @@ std::shared_ptr<pugi::xml_node> ConfigGenerator::setValue(config_option_t option
 std::shared_ptr<pugi::xml_node> ConfigGenerator::setValue(config_option_t option, const std::string& key, const std::string& value)
 {
     auto cs = std::dynamic_pointer_cast<ConfigDictionarySetup>(ConfigDefinition::findConfigSetup(option));
-    if (cs == nullptr)
+    if (!cs)
         return nullptr;
 
     auto nodeKey = ConfigDefinition::mapConfigOption(cs->nodeOption);
@@ -130,7 +130,7 @@ std::shared_ptr<pugi::xml_node> ConfigGenerator::setValue(config_option_t option
 std::shared_ptr<pugi::xml_node> ConfigGenerator::setDictionary(config_option_t option)
 {
     auto cs = std::dynamic_pointer_cast<ConfigDictionarySetup>(ConfigDefinition::findConfigSetup(option));
-    if (cs == nullptr)
+    if (!cs)
         return nullptr;
 
     auto nodeKey = ConfigDefinition::mapConfigOption(cs->nodeOption);
@@ -323,6 +323,7 @@ void ConfigGenerator::generateMappings()
 
     setDictionary(CFG_IMPORT_MAPPINGS_MIMETYPE_TO_UPNP_CLASS_LIST);
     setDictionary(CFG_IMPORT_MAPPINGS_MIMETYPE_TO_CONTENTTYPE_LIST);
+    setDictionary(CFG_IMPORT_MAPPINGS_CONTENTTYPE_TO_DLNAPROFILE_LIST);
 }
 
 void ConfigGenerator::generateOnlineContent()

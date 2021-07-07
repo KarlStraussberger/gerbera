@@ -47,7 +47,7 @@ ContentPathSetup::ContentPathSetup(std::shared_ptr<Config> config, config_option
 std::vector<fs::path> ContentPathSetup::getContentPath(const std::shared_ptr<CdsObject>& obj, const std::string& setting, fs::path folder)
 {
     auto tweak = allTweaks->get(obj->getLocation());
-    auto files = tweak == nullptr || !tweak->hasSetting(setting) ? this->names : std::vector<std::string> { tweak->getSetting(setting) };
+    auto files = !tweak || !tweak->hasSetting(setting) ? this->names : std::vector<std::string> { tweak->getSetting(setting) };
     auto isCaseSensitive = tweak && tweak->hasCaseSensitive() ? tweak->getCaseSensitive() : this->caseSensitive;
 
     std::vector<fs::path> result;
@@ -130,13 +130,13 @@ std::vector<fs::path> ContentPathSetup::getContentPath(const std::shared_ptr<Cds
     return result;
 }
 
-static constexpr std::array<std::pair<std::string_view, metadata_fields_t>, 5> metaTags { {
-    { "%album%", M_ALBUM },
-    { "%albumArtist%", M_ALBUMARTIST },
-    { "%artist%", M_ARTIST },
-    { "%genre%", M_GENRE },
-    { "%title%", M_TITLE },
-} };
+static constexpr auto metaTags = std::array<std::pair<std::string_view, metadata_fields_t>, 5> {
+    std::pair("%album%", M_ALBUM),
+    std::pair("%albumArtist%", M_ALBUMARTIST),
+    std::pair("%artist%", M_ARTIST),
+    std::pair("%genre%", M_GENRE),
+    std::pair("%title%", M_TITLE),
+};
 
 std::string ContentPathSetup::expandName(const std::string& name, const std::shared_ptr<CdsObject>& obj)
 {
@@ -186,7 +186,7 @@ void FanArtHandler::fillMetadata(std::shared_ptr<CdsObject> obj)
             resource->addAttribute(R_PROTOCOLINFO, renderProtocolInfo(mimeType));
             resource->addAttribute(R_RESOURCE_FILE, path.string());
             resource->addParameter(RESOURCE_CONTENT_TYPE, ID3_ALBUM_ART);
-            obj->addResource(resource);
+            obj->addResource(move(resource));
         }
     }
 }
@@ -237,7 +237,7 @@ void ContainerArtHandler::fillMetadata(std::shared_ptr<CdsObject> obj)
             resource->addAttribute(R_PROTOCOLINFO, renderProtocolInfo(mimeType));
             resource->addAttribute(R_RESOURCE_FILE, path.string());
             resource->addParameter(RESOURCE_CONTENT_TYPE, ID3_ALBUM_ART);
-            obj->addResource(resource);
+            obj->addResource(move(resource));
         }
     }
 }
@@ -295,7 +295,7 @@ void SubtitleHandler::fillMetadata(std::shared_ptr<CdsObject> obj)
             resource->addAttribute(R_LANGUAGE, path.stem().string()); // assume file name is related to some language
             resource->addParameter(RESOURCE_CONTENT_TYPE, VIDEO_SUB);
             resource->addParameter("type", type);
-            obj->addResource(resource);
+            obj->addResource(move(resource));
         }
     }
 }
@@ -340,7 +340,7 @@ void ResourceHandler::fillMetadata(std::shared_ptr<CdsObject> obj)
             auto resource = std::make_shared<CdsResource>(CH_RESOURCE);
             resource->addAttribute(R_PROTOCOLINFO, renderProtocolInfo("res"));
             resource->addAttribute(R_RESOURCE_FILE, path.string());
-            obj->addResource(resource);
+            obj->addResource(move(resource));
         }
     }
 }

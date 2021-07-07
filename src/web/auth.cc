@@ -114,10 +114,10 @@ void web::auth::process()
         gerberaVersion.set_value(GERBERA_VERSION);
     } else if (action == "get_sid") {
         log_debug("checking/getting sid...");
-        std::shared_ptr<Session> session = nullptr;
+        std::shared_ptr<Session> session;
         std::string sid = param("sid");
 
-        if (sid.empty() || (session = sessionManager->getSession(sid)) == nullptr) {
+        if (sid.empty() || !(session = sessionManager->getSession(sid))) {
             session = sessionManager->createSession(timeout);
             root.append_attribute("sid_was_valid") = false;
         } else {
@@ -135,7 +135,7 @@ void web::auth::process()
         check_request();
         std::string sid = param("sid");
         auto session = sessionManager->getSession(sid);
-        if (session == nullptr)
+        if (!session)
             throw_std_runtime_error("illegal session id");
         sessionManager->removeSession(sid);
     } else if (action == "get_token") {
@@ -157,7 +157,7 @@ void web::auth::process()
             throw LoginException("Missing username or password");
 
         auto session = sessionManager->getSession(sid);
-        if (session == nullptr)
+        if (!session)
             throw_std_runtime_error("illegal session id");
 
         std::string correctPassword = sessionManager->getUserPassword(username);

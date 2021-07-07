@@ -163,7 +163,7 @@ void AutoscanInotify::threadProc()
                 std::string name = event->name;
                 log_debug("inotify event: {} 0x{:x} {}", wd, mask, name.c_str());
 
-                std::shared_ptr<Wd> wdObj = nullptr;
+                std::shared_ptr<Wd> wdObj;
                 try {
                     wdObj = watches->at(wd);
                 } catch (const std::out_of_range& ex) {
@@ -180,8 +180,6 @@ void AutoscanInotify::threadProc()
                 auto watchAs = getAppropriateAutoscan(wdObj, path);
                 if (watchAs)
                     adir = watchAs->getAutoscanDirectory();
-                else
-                    adir = nullptr;
 
                 // file is renamed
                 if (mask & IN_MOVE_SELF) {
@@ -313,7 +311,7 @@ int AutoscanInotify::addMoveWatch(const fs::path& path, int removeWd, int parent
 {
     int wd = inotify->addWatch(path, events);
     if (wd >= 0) {
-        std::shared_ptr<Wd> wdObj = nullptr;
+        std::shared_ptr<Wd> wdObj;
         try {
             //find
             wdObj = watches->at(wd);
@@ -335,7 +333,7 @@ int AutoscanInotify::addMoveWatch(const fs::path& path, int removeWd, int parent
 
         // add move watch
         auto watch = std::make_shared<WatchMove>(removeWd);
-        wdObj->addWatch(watch);
+        wdObj->addWatch(move(watch));
     }
     return wd;
 }
@@ -513,14 +511,14 @@ int AutoscanInotify::monitorDirectory(const fs::path& path, const std::shared_pt
         if (startPoint)
             parentWd = watchPathForMoves(path, wd);
 
-        std::shared_ptr<Wd> wdObj = nullptr;
+        std::shared_ptr<Wd> wdObj;
         try {
             wdObj = watches->at(wd);
             if (parentWd >= 0 && wdObj->getParentWd() < 0) {
                 wdObj->setParentWd(parentWd);
             }
 
-            if (pathArray == nullptr)
+            if (!pathArray)
                 alreadyWatching = getAppropriateAutoscan(wdObj, adir) != nullptr;
 
             // should we check for already existing "nonexisting" watches?
@@ -535,7 +533,7 @@ int AutoscanInotify::monitorDirectory(const fs::path& path, const std::shared_pt
             if (pathArray) {
                 watch->setNonexistingPathArray(*pathArray);
             }
-            wdObj->addWatch(watch);
+            wdObj->addWatch(move(watch));
 
             if (!startPoint) {
                 int startPointWd = inotify->addWatch(adir->getLocation(), events);
@@ -562,13 +560,13 @@ void AutoscanInotify::unmonitorDirectory(const fs::path& path, const std::shared
     }
 
     auto wdObj = watches->at(wd);
-    if (wdObj == nullptr) {
+    if (!wdObj) {
         log_error("wd not found in watches!? ({}, {})", wd, path.c_str());
         return;
     }
 
     auto watchAs = getAppropriateAutoscan(wdObj, adir);
-    if (watchAs == nullptr) {
+    if (!watchAs) {
         log_debug("autoscan not found in watches? ({}, {})", wd, path.c_str());
     } else {
         if (wdObj->getWdWatches()->size() == 1) {
@@ -601,7 +599,7 @@ std::shared_ptr<AutoscanInotify::WatchAutoscan> AutoscanInotify::getAppropriateA
 std::shared_ptr<AutoscanInotify::WatchAutoscan> AutoscanInotify::getAppropriateAutoscan(const std::shared_ptr<Wd>& wdObj, const fs::path& path)
 {
     fs::path pathBestMatch;
-    std::shared_ptr<WatchAutoscan> bestMatch = nullptr;
+    std::shared_ptr<WatchAutoscan> bestMatch;
     auto wdWatches = wdObj->getWdWatches();
     for (auto&& watch : *wdWatches) {
         if (watch->getType() == WatchType::Autoscan) {
@@ -630,7 +628,7 @@ void AutoscanInotify::removeWatchMoves(int wd)
     bool first = true;
     int checkWd = wd;
     do {
-        std::shared_ptr<Wd> wdObj = nullptr;
+        std::shared_ptr<Wd> wdObj;
         try {
             wdObj = watches->at(checkWd);
         } catch (const std::out_of_range& ex) {
@@ -698,18 +696,18 @@ std::shared_ptr<AutoscanInotify::WatchAutoscan> AutoscanInotify::getStartPoint(c
 void AutoscanInotify::addDescendant(int startPointWd, int addWd, const std::shared_ptr<AutoscanDirectory>& adir)
 {
     //    log_debug("called for {}, (adir->path={}); adding {}", startPointWd, adir->getLocation().c_str(), addWd);
-    std::shared_ptr<Wd> wdObj = nullptr;
+    std::shared_ptr<Wd> wdObj;
     try {
         wdObj = watches->at(startPointWd);
     } catch (const std::out_of_range& ex) {
         return;
     }
-    if (wdObj == nullptr)
+    if (!wdObj)
         return;
 
     //   log_debug("found wdObj");
     auto watch = getAppropriateAutoscan(wdObj, adir);
-    if (watch == nullptr)
+    if (!watch)
         return;
     //    log_debug("adding descendant");
     watch->addDescendant(addWd);
@@ -718,7 +716,7 @@ void AutoscanInotify::addDescendant(int startPointWd, int addWd, const std::shar
 
 void AutoscanInotify::removeDescendants(int wd)
 {
-    std::shared_ptr<Wd> wdObj = nullptr;
+    std::shared_ptr<Wd> wdObj;
     try {
         wdObj = watches->at(wd);
     } catch (const std::out_of_range& ex) {

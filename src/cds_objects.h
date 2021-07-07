@@ -151,7 +151,7 @@ public:
 
     /// \brief Set the parent ID of the object.
     void setParentID(int parentID) { this->parentID = parentID; }
-    void setParent(std::shared_ptr<CdsObject>& parent) { this->parent = parent; }
+    void setParent(const std::shared_ptr<CdsObject>& parent) { this->parent = parent; }
 
     /// \brief Retrieve the objects parent ID.
     int getParentID() const { return parentID; }
@@ -325,9 +325,9 @@ public:
     }
 
     /// \brief Add resource tag
-    void addResource(const std::shared_ptr<CdsResource>& resource)
+    void addResource(std::shared_ptr<CdsResource> resource)
     {
-        resources.push_back(resource);
+        resources.push_back(move(resource));
     }
 
     /// \brief Insert resource tag at index

@@ -486,6 +486,19 @@
 					]
 				},
 				{
+					"item": "/import/visible-directories/add-path",
+					"caption": "Visible Directories",
+					"type": "List",
+					"editable": false,
+					"children": [
+						{
+							"item": "/import/visible-directories/add-path/attribute::name",
+							"caption": "Path",
+							"editable": false
+						}
+					]
+				},
+				{
 					"item": "/import/scripting/virtual-layout/genre-map/genre",
 					"caption": "Genre Map",
 					"type": "List",
@@ -972,6 +985,24 @@
 						},
 						{
 							"item": "/import/mappings/mimetype-upnpclass/map/attribute::to",
+							"caption": "To",
+							"editable": true
+						}
+					]
+				},
+				{
+					"item": "/import/mappings/contenttype-dlnaprofile/map",
+					"caption": "DLNA Profiles",
+					"type": "List",
+					"editable": true,
+					"children": [
+						{
+							"item": "/import/mappings/contenttype-dlnaprofile/map/attribute::from",
+							"caption": "From",
+							"editable": true
+						},
+						{
+							"item": "/import/mappings/contenttype-dlnaprofile/map/attribute::to",
 							"caption": "To",
 							"editable": true
 						}
