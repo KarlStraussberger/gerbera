@@ -121,7 +121,7 @@ if [[ "${my_sys}" == "HEAD" ]]; then
   libduktape=""
   libmatroska=""
   libpugixml=""
-  ffmpegthumbnailer="libavfilter-dev libavcodec-dev libavutil-dev libavdevice-dev libavresample-dev"
+  ffmpegthumbnailer="ffmpeg libavfilter-dev libavcodec-dev libavutil-dev libavdevice-dev libavresample-dev"
   BuildType="Debug"
   DoTests="ON"
 else
@@ -188,12 +188,12 @@ if [[ "${my_sys}" == "HEAD" ]]; then
   install-pugixml
   install-duktape
   install-matroska
+  install-ffmpegthumbnailer
 fi
 
 install-fmt
 install-spdlog
 install-pupnp
-install-ffmpegthumbnailer
 install-taglib
 
 cd build-deb
