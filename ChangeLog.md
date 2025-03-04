@@ -1,6 +1,6 @@
 ## Gerbera - UPnP AV Mediaserver.
 
-### HEAD
+### 2.5.0
 
 - Add manual autoscan option
 - Add Options to Scripts
