@@ -4,7 +4,7 @@
 
     test_server.cc - this file is part of Gerbera.
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -94,6 +94,9 @@ TEST_F(ServerTest, ServerOutputsHelpInformation)
         "    --create-advanced-config \\[=Section\\(=All\\)\\]",
         " *Print a advanced example config.xml file ",
         " *and exit",
+        "    --modules \\[=Module\\(=None\\)\\]",
+        " *Create \\\"from-file\\\" module statements in",
+        " *config\\.xml",
         "    --check-config *Check config.xml file and exit",
         "    --print-options *Print simple config options and exit",
         "    --offline *Do not answer UPnP content requests",
@@ -123,6 +126,10 @@ TEST_F(ServerTest, ServerOutputsHelpInformation)
         "-e, --interface IF *Interface to bind with",
         "-m, --home DIR *Search this directory for a .config/gerbera ",
         " *folder containing a config file",
+#ifdef HAVE_JS
+        "    --scripts DIR *Search this directory for custom javascript ",
+        " *files",
+#endif
 #ifdef HAVE_MAGIC
         "    --magic FILE *Set magic FILE",
 #endif

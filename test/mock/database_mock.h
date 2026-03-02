@@ -3,7 +3,7 @@
 
     database_mock.h - this file is part of Gerbera.
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -53,17 +53,31 @@ public:
         int startIndex,
         int count,
         const std::string& group) override { return {}; }
-    std::shared_ptr<CdsObject> findObjectByPath(const fs::path& path, const std::string& group, DbFileType fileType = DbFileType::Auto) override { return {}; }
-    int findObjectIDByPath(const fs::path& fullpath, DbFileType fileType = DbFileType::Auto) override { return INVALID_OBJECT_ID; }
+    std::shared_ptr<CdsObject> findObjectByPath(
+        const fs::path& path,
+        const std::string& group,
+        DbFileType fileType = DbFileType::Auto) override { return {}; }
     std::string incrementUpdateIDs(const std::unordered_set<int>& ids) override { return {}; }
 
-    std::shared_ptr<CdsObject> loadObject(int objectID) override { return nullptr; }
-    std::shared_ptr<CdsObject> loadObject(const std::string& group, int objectID) override { return nullptr; }
-    int getChildCount(int contId, bool containers = true, bool items = true, bool hideFsRoot = false) override { return 0; }
-    std::map<int, int> getChildCounts(const std::vector<int>& contId, bool containers, bool items, bool hideFsRoot) override { return {}; }
+    std::shared_ptr<CdsObject> loadObject(int objectID, const std::string& group) override { return nullptr; }
+    std::map<int, int> getChildCounts(
+        const std::vector<int>& contId,
+        bool containers,
+        bool items,
+        bool hideFsRoot) override
+    {
+        if (contId.empty())
+            return {};
+        return { { contId.front(), 0 } };
+    }
 
     std::unique_ptr<ChangedContainers> removeObject(int objectID, const fs::path& path, bool all) override { return {}; }
-    std::size_t getObjects(int parentID, bool withoutContainer, std::unordered_set<int>& ret, bool full) override { return 0; }
+    std::size_t getObjects(
+        int parentID,
+        bool withoutContainer,
+        std::unordered_set<int>& ret,
+        bool full,
+        int refID) override { return 0; }
     std::vector<int> getRefObjects(int objectId) override { return {}; }
     std::unordered_set<int> getUnreferencedObjects() override { return {}; }
 

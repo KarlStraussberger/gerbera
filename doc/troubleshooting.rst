@@ -11,8 +11,10 @@ and try to apply your settings in the new version. For each setting you cannot f
 documentation to make sure you (still) have the correct understanding of the setting.
 
 
-Installation
-~~~~~~~~~~~~
+.. _Update:
+
+Installation/Update
+~~~~~~~~~~~~~~~~~~~
 
 If you want to update from a version that was provided by another package source (like ubuntu main -> pkg.gerbera.io) perform the following steps
 
@@ -27,6 +29,8 @@ If you want to update from a version that was provided by another package source
 - generate config file with ``--create-config``
 
 - merge your old settings into the new file and copy it into the right place
+
+- run ``xmllint --noout --schema /usr/local/share/gerbera/config2.xsd config.xml`` to make sure your config files is valid
 
 - copy the database file to the right place (depending on version differences it is even recommended to create a new database)
 
@@ -100,6 +104,27 @@ If gerbera appears to be running but other devices on the network can't see it, 
 firewall is not blocking UDP port ``1900`` or the server port that Gerbera is using
 (e.g. ``49152``, see the :ref:`Port <troubleshoot_port>` section above).
 
+The following addition to the firewall configuration of the machine running the media server may solve discovery issues:
+
+::
+
+    firewall-cmd --permanent --zone=internal --add-protocol=igmp
+
+    iptables
+       -A TCP -m tcp --dport 49152 -m comment --comment gerbera -j ACCEPT
+       -A UDP -d 239.255.255.250/32 -m udp --dport 1900 -m comment --comment "upnp dlna" -j ACCEPT
+       -A IGMP -d 224.0.0.1/32 -m comment --comment "igmp membership queries, upnp/dlna" -j ACCEPT
+       -A IGMP -d 239.0.0.0/8 -m comment --comment "igmp multicast, upnp/dlna" -j ACCEPT
+
+In case you have bridged network devices something like this might help:
+(Add it at the best place of your boot process)
+
+::
+
+    echo 0 >> /sys/devices/virtual/net/br0/bridge/multicast_snooping
+    systemctl enable multicast_snooping.service
+    systemctl start multicast_snooping.service
+
 If you have opened only a single server port in your firewall for Gerbera to use, consider adding that port
 to the command line or config file to prevent it from changing upon server restart.
 If multiple instances of Gerbera or other UPnP media servers are running at the same time you may need
@@ -125,7 +150,7 @@ Do not output log messages to stdout, but redirect everything to a specified fil
 
 ::
 
-    --rotatelog FILE
+    --rotatelog=FILE
 
 Do not output log messages to stdout, but redirect everything to a rotating list of files. The max size of each
 log file can be set with config option ``server/logging/attribute::rotate-file-size``. The max count of log files
@@ -133,7 +158,7 @@ can be set with config option ``server/logging/attribute::rotate-file-count``. S
 
 ::
 
-    --syslog LOG
+    --syslog=LOG
 
 Do not output log messages to stdout, but redirect everything to syslog. The optional
 argument contains the syslog facility. If no argument is given LOG_USER is used. The following values for ``LOG``
@@ -156,7 +181,7 @@ Debug Mode
 
 ::
 
-    --debug-mode "subsystem[|subsystem2|...]"
+    --debug-mode="subsystem[|subsystem2|...]"
 
 Activate debugging messages only for certain subsystems. The following subsystems are available:
 
@@ -167,8 +192,8 @@ Activate debugging messages only for certain subsystems. The following subsystem
     :caption: Subsystem names are the strings in quotes
     :language: c++
 
-Multiple subsystems can be combined with a ``|``. Names are not case sensitive. This is for developers and testers mostly and has to be activted in cmake
-options at compile time (``-DWITH_DEBUG_OPTIONS=YES``).
+Multiple subsystems can be combined with a ``|``. Names are not case sensitive. This is for developers and testers mostly and has to be
+activated in cmake options at compile time (``-DWITH_DEBUG_OPTIONS=YES``).
 
 Check Config
 ------------
@@ -182,11 +207,16 @@ If you have startup problems or unexpected behaviour you can check the configura
 Check the current configuration and exit. Useful to check new settings before running gerbera as a service.
 Best use with --debug in case of problems.
 
+Config Modules
+^^^^^^^^^^^^^^
+
+If configuration is loaded from module files with ``from-file`` the content of the section of config.xml is ignored.
+
 Compile Info
 ------------
 
-Gerbera has some compile options regarding support for media file formats. If your media files are not scanned at all or metadata is not detected completely
-the compile info may help to look at the right place.
+Gerbera has some compile options regarding support for media file formats. If your media files are not scanned at all or metadata is not
+detected completely the compile info may help to look at the right place.
 
 ::
 
@@ -280,6 +310,9 @@ copy to play with if necessary.
 Mysql
 ~~~~~
 
+4-Byte UTF8
+-----------
+
 For 4byte utf8 support you may try
 
 .. code-block:: sql
@@ -289,5 +322,12 @@ For 4byte utf8 support you may try
         ALTER TABLE `mt_metadata` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
         ALTER TABLE `grb_cds_resource` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-You will also have to set the ``string-limit`` to ``250`` to cope with the maximum
+You will also have to set the :confval:`string-limit` to ``250`` to cope with the maximum
 index size of 1000.
+
+TLS/SSL error
+-------------
+
+Newer versions of MySQL/MariaDB connectors assume SSL/TLS encryption which might not
+be active on your system. In that case you have to set the environment variable
+``MARIADB_TLS_DISABLE_PEER_VERIFICATION=1`` to skip certificate handling.

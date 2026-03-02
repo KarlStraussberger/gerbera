@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -38,6 +38,7 @@
 #include "util/logger.h"
 
 #include <algorithm>
+#include <cinttypes>
 #include <numeric>
 #include <queue>
 #include <regex>
@@ -60,7 +61,11 @@
 
 static constexpr auto hexChars = "0123456789abcdef";
 
-std::vector<std::string> splitString(std::string_view str, char sep, char quote, bool empty)
+std::vector<std::string> splitString(
+    std::string str,
+    char sep,
+    char quote,
+    bool empty)
 {
     std::vector<std::string> ret;
 
@@ -86,7 +91,7 @@ std::vector<std::string> splitString(std::string_view str, char sep, char quote,
     return ret;
 }
 
-std::string camelCaseString(const std::string_view& str)
+std::string camelCaseString(const std::string& str)
 {
     std::string ret;
 
@@ -233,8 +238,18 @@ std::string expandNumbersString(std::string str, std::size_t size)
         std::string matchStr = strMatch[1].str();
 
         if (!matchStr.empty()) {
-            auto matchInt = std::stoul(matchStr);
-            result += fmt::format("{0}{1:0{2}}", strMatch.prefix().str(), matchInt, matchStr.size() < size ? size : matchStr.size());
+            try {
+                char* endptr;
+                auto matchInt = std::strtoumax(matchStr.c_str(), &endptr, 10);
+                if (matchInt == UINTMAX_MAX) {
+                    result += fmt::format("{0}{1}", strMatch.prefix().str(), matchStr);
+                } else {
+                    result += fmt::format("{0}{1:0{2}}", strMatch.prefix().str(), matchInt, matchStr.size() < size ? size : matchStr.size());
+                }
+            } catch (const std::exception& ex) {
+                result += fmt::format("{0}{1}", strMatch.prefix().str(), matchStr);
+                log_error("{} (input {})", ex.what(), matchStr);
+            }
             str = strMatch.suffix();
         }
     }
@@ -327,10 +342,13 @@ std::string generateRandomId()
 
 std::string mimeTypesToCsv(const std::vector<std::string>& mimeTypes)
 {
-    return mimeTypes.empty() ? "" : fmt::format("http-get:*:{}:*", fmt::join(mimeTypes, ":*,http-get:*:"));
+    return mimeTypes.empty() ? "" : fmt::format("{}:*:{}:*", PROTOCOL, fmt::join(mimeTypes, fmt::format(":*,{}:*:", PROTOCOL)));
 }
 
-std::string renderProtocolInfo(std::string_view mimetype, std::string_view protocol, std::string_view extend)
+std::string renderProtocolInfo(
+    const std::string& mimetype,
+    const std::string& protocol,
+    const std::string& extend)
 {
     if (!mimetype.empty() && !protocol.empty()) {
         if (!extend.empty())
@@ -338,10 +356,10 @@ std::string renderProtocolInfo(std::string_view mimetype, std::string_view proto
         return fmt::format("{}:*:{}:*", protocol, mimetype);
     }
 
-    return "http-get:*:*:*";
+    return fmt::format("{}:*:*:*", PROTOCOL);
 }
 
-std::string getMTFromProtocolInfo(std::string_view protocol)
+std::string getMTFromProtocolInfo(const std::string& protocol)
 {
     std::vector<std::string> parts = splitString(protocol, ':');
     if (parts.size() > 2)
@@ -350,10 +368,10 @@ std::string getMTFromProtocolInfo(std::string_view protocol)
     return {};
 }
 
-std::string_view getProtocol(std::string_view protocolInfo)
+std::string getProtocol(const std::string& protocolInfo)
 {
     auto pos = protocolInfo.find(':');
-    return (pos == std::string_view::npos || pos == 0) ? PROTOCOL : protocolInfo.substr(0, pos);
+    return (pos == std::string::npos || pos == 0) ? PROTOCOL : protocolInfo.substr(0, pos);
 }
 
 std::string escape(std::string_view string, char escapeChar, char toEscape)

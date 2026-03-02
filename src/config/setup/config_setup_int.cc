@@ -4,7 +4,7 @@
 
     config_setup_int.cc - this file is part of Gerbera.
 
-    Copyright (C) 2020-2025 Gerbera Contributors
+    Copyright (C) 2020-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -31,15 +31,23 @@
 #include "config/config_options.h"
 #include "util/logger.h"
 
+#include <pugixml.hpp>
+
 template <typename T, class OptionClass>
-void ConfigIntegerSetup<T, OptionClass>::makeOption(const pugi::xml_node& root, const std::shared_ptr<Config>& config, const std::map<std::string, std::string>* arguments)
+void ConfigIntegerSetup<T, OptionClass>::makeOption(
+    const pugi::xml_node& root,
+    const std::shared_ptr<Config>& config,
+    const std::map<std::string, std::string>* arguments)
 {
-    newOption(getXmlContent(root));
+    newOption(getXmlContent(root, config));
     setOption(config);
 }
 
 template <typename T, class OptionClass>
-void ConfigIntegerSetup<T, OptionClass>::makeOption(std::string optValue, const std::shared_ptr<Config>& config, const std::map<std::string, std::string>* arguments)
+void ConfigIntegerSetup<T, OptionClass>::makeOption(
+    std::string optValue,
+    const std::shared_ptr<Config>& config,
+    const std::map<std::string, std::string>* arguments)
 {
     try {
         if (rawCheck) {
@@ -98,9 +106,11 @@ T ConfigIntegerSetup<T, OptionClass>::checkIntValue(std::string& sVal, const std
 }
 
 template <typename T, class OptionClass>
-T ConfigIntegerSetup<T, OptionClass>::getXmlContent(const pugi::xml_node& root)
+T ConfigIntegerSetup<T, OptionClass>::getXmlContent(
+    const pugi::xml_node& root,
+    const std::shared_ptr<Config>& config)
 {
-    std::string sVal = ConfigSetup::getXmlContent(root, true);
+    std::string sVal = ConfigSetup::getXmlContent(root, config, true);
     log_debug("Config: option: '{}/{}' value: '{}'", root.path(), xpath, sVal);
     return checkIntValue(sVal, root.path());
 }

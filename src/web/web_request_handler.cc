@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -192,13 +192,13 @@ std::unique_ptr<IOHandler> WebRequestHandler::open(
     return ioHandler;
 }
 
-static std::map<AutoscanType, std::string_view> asTypeMap = {
+static std::map<AutoscanType, std::string> asTypeMap = {
     { AutoscanType::Ui, "ui" },
     { AutoscanType::Config, "persistent" },
     { AutoscanType::None, "none" },
 };
 
-std::string_view WebRequestHandler::mapAutoscanType(AutoscanType type)
+std::string WebRequestHandler::mapAutoscanType(AutoscanType type)
 {
     return asTypeMap.at(type);
 }

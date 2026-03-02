@@ -3,7 +3,8 @@
     Gerbera - https://gerbera.io/
 
     config_setup.h - this file is part of Gerbera.
-    Copyright (C) 2020-2025 Gerbera Contributors
+
+    Copyright (C) 2020-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -32,8 +33,12 @@
 #include <functional>
 #include <map>
 #include <memory>
-#include <pugixml.hpp>
 #include <vector>
+
+namespace pugi {
+class xml_node;
+class xpath_node_set;
+} // namespace pugi
 
 #define YES "yes"
 #define NO "no"
@@ -138,6 +143,9 @@ public:
 
     virtual ~ConfigSetup() = default;
 
+    ConfigSetup(const ConfigSetup&) = delete;
+    ConfigSetup& operator=(const ConfigSetup&) = delete;
+
     /// @brief get xml tree based on config item
     pugi::xpath_node_set getXmlTree(const pugi::xml_node& element) const;
 
@@ -205,7 +213,10 @@ public:
     bool hasXmlElement(const pugi::xml_node& root) const;
 
     /// @brief Returns a config option with the given xpath, if option does not exist a default value is returned.
-    std::string getXmlContent(const pugi::xml_node& root, bool trim = true);
+    std::string getXmlContent(
+        const pugi::xml_node& root,
+        const std::shared_ptr<Config>& config,
+        bool trim = true);
 
     /// @brief Gererate Option from config file entry
     virtual void makeOption(

@@ -4,7 +4,7 @@
 
     script_test_fixture.cc - this file is part of Gerbera.
 
-    Copyright (C) 2020-2025 Gerbera Contributors
+    Copyright (C) 2020-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -203,7 +203,8 @@ void ScriptTestFixture::addGlobalFunctions(
     const duk_function_list_entry* funcs,
     const std::map<std::string_view, std::string_view>& configValues,
     const std::vector<boxConfig>& boxDefaults,
-    const std::map<std::string_view, std::map<std::string_view, std::string_view>>& configDicts)
+    const std::map<std::string_view, std::map<std::string_view, std::string_view>>& configDicts,
+    const std::map<std::string_view, std::vector<std::vector<std::pair<std::string_view, std::string_view>>>>& configVects)
 {
 
     for (auto&& [meta, str] : MetaEnumMapper::mt_keys) {
@@ -229,7 +230,8 @@ void ScriptTestFixture::addGlobalFunctions(
         duk_put_global_lstring(ctx, sym.data(), sym.size());
     }
 
-    for (auto&& [field, sym] : boxKeyNames) {
+    for (auto&& [field, bkey] : boxKeyNames) {
+        auto&& sym = BoxLayout::getBoxKey(bkey);
         duk_push_lstring(ctx, sym.data(), sym.length());
         duk_put_global_lstring(ctx, field.data(), field.length());
     }
@@ -239,7 +241,8 @@ void ScriptTestFixture::addGlobalFunctions(
             ctx,
             { { "/import/scripting/virtual-layout/structured-layout/attribute::skip-chars", "" } },
             boxDefaults,
-            configDicts);
+            configDicts,
+            configVects);
     } else {
         addConfig(ctx, configValues, boxDefaults, configDicts);
     }
@@ -256,7 +259,8 @@ void ScriptTestFixture::addConfig(
     duk_context* ctx,
     const std::map<std::string_view, std::string_view>& configValues,
     const std::vector<boxConfig>& boxDefaults,
-    const std::map<std::string_view, std::map<std::string_view, std::string_view>>& configDicts)
+    const std::map<std::string_view, std::map<std::string_view, std::string_view>>& configDicts,
+    const std::map<std::string_view, std::vector<std::vector<std::pair<std::string_view, std::string_view>>>>& configVects)
 {
     duk_push_object(ctx); // config
     for (auto&& [key, value] : configValues) {
@@ -270,6 +274,19 @@ void ScriptTestFixture::addConfig(
         for (auto&& [key, value] : dict) {
             duk_push_string(ctx, value.data());
             duk_put_prop_string(ctx, -2, key.data());
+        }
+        duk_put_prop_string(ctx, -2, dictName.data()); // dict
+    }
+
+    for (auto&& [dictName, vector] : configVects) {
+        auto dukArray = duk_push_array(ctx);
+        for (duk_uarridx_t configIndex = 0; configIndex < vector.size(); configIndex++) {
+            duk_push_object(ctx);
+            for (auto&& [key, value] : vector.at(configIndex)) {
+                duk_push_string(ctx, value.data());
+                duk_put_prop_string(ctx, -2, key.data());
+            }
+            duk_put_prop_index(ctx, dukArray, configIndex);
         }
         duk_put_prop_string(ctx, -2, dictName.data()); // dict
     }
@@ -469,6 +486,23 @@ std::string ScriptTestFixture::mapGenre(
     return result;
 }
 
+std::string ScriptTestFixture::mapModel(
+    duk_context* ctx,
+    std::map<std::string, std::string> modelMap)
+{
+    std::string model = duk_to_string(ctx, 0);
+    int mapped = modelMap.find(model) != modelMap.end() ? 1 : 0;
+    auto result = mapped == 1 ? modelMap[model] : model;
+    duk_push_object(ctx);
+
+    duk_push_int(ctx, mapped);
+    duk_put_prop_string(ctx, -2, "mapped");
+    duk_push_string(ctx, result.c_str());
+    duk_put_prop_string(ctx, -2, "value");
+
+    return result;
+}
+
 std::vector<std::string> ScriptTestFixture::addContainerTree(
     duk_context* ctx,
     std::map<std::string, std::string> resMap)
@@ -545,8 +579,12 @@ abcBoxParams ScriptTestFixture::abcBox(duk_context* ctx)
     params.inputValue = inputValue;
     params.boxType = boxType;
     params.divChar = divChar;
-
-    duk_push_string(ctx, boxType == 26 ? "-A-" : "-ABCD-");
+    if (inputValue.at(0) == 'A')
+        duk_push_string(ctx, boxType == 26 ? "-A-" : "-ABCD-");
+    else if (inputValue.at(0) == 'T')
+        duk_push_string(ctx, boxType == 26 ? "-T-" : "-TUV-");
+    else
+        duk_push_string(ctx, boxType == 26 ? "-?-" : "-----");
     return params;
 }
 
@@ -556,6 +594,7 @@ getRootPathParams ScriptTestFixture::getRootPath(duk_context* ctx)
     std::string objScriptPath = duk_to_string(ctx, 0);
     std::string origObjLocation = duk_to_string(ctx, 1);
     std::string objLocation = origObjLocation;
+    std::string rootPath = objScriptPath;
     size_t pos;
     std::string delimiter = "/";
     std::vector<std::string> dirs;
@@ -566,6 +605,19 @@ getRootPathParams ScriptTestFixture::getRootPath(duk_context* ctx)
         objLocation.erase(0, pos + delimiter.length());
     }
 
+    if (objScriptPath.at(objScriptPath.size() - 1) != '/')
+        objScriptPath += '/';
+    while ((pos = objScriptPath.find(delimiter)) != std::string::npos) {
+        std::string token = objScriptPath.substr(0, pos);
+        if (token.length() > 0) {
+            if (dirs.at(0) == token)
+                dirs.erase(dirs.begin());
+            else
+                break;
+        }
+        objScriptPath.erase(0, pos + delimiter.length());
+    }
+
     duk_idx_t arrIdx = duk_push_array(ctx);
     for (size_t i = 0; i < dirs.size(); i++) {
         std::string dir = dirs.at(i);
@@ -574,7 +626,7 @@ getRootPathParams ScriptTestFixture::getRootPath(duk_context* ctx)
     }
 
     getRootPathParams params;
-    params.objScriptPath = objScriptPath;
+    params.objScriptPath = rootPath;
     params.origObjLocation = origObjLocation;
 
     return params;

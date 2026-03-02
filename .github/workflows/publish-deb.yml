@@ -57,7 +57,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     name: Compile ${{ matrix.os-ver }} ${{ matrix.arch }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0 # We need history/tags to generate version info
 
@@ -95,7 +95,7 @@ jobs:
           string: '${{ matrix.os-ver }}:${{ matrix.arch }}'
           replace-with: $1-$2-$3$4.deb
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         if: ${{github.event_name != 'pull_request'}}
         with:
           name: ${{ steps.replace.outputs.replaced }}

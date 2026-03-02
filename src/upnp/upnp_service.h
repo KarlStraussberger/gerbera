@@ -4,7 +4,7 @@
 
     upnp_service.h - this file is part of Gerbera.
 
-    Copyright (C) 2024-2025 Gerbera Contributors
+    Copyright (C) 2024-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -64,6 +64,9 @@ public:
         bool offline = false);
     virtual ~UpnpService();
 
+    UpnpService(const UpnpService&) = delete;
+    UpnpService& operator=(const UpnpService&) = delete;
+
     std::string getServiceId() const { return serviceID; }
     bool isActiveMatch(const std::string& id) const { return !offline && id == serviceID; }
     /// @brief Dispatches the ActionRequest between the available actions.
@@ -78,7 +81,7 @@ public:
     ///
     /// Looks at the incoming SubscriptionRequest and accepts the subscription
     /// if everything is ok.
-    virtual bool processSubscriptionRequest(const SubscriptionRequest& request)
+    virtual bool processSubscriptionRequest(const SubscriptionRequest& request) const
     {
         return false;
     }

@@ -3,7 +3,7 @@
 
     postgres_database.cc - this file is part of Gerbera.
 
-    Copyright (C) 2025 Gerbera Contributors
+    Copyright (C) 2025-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -55,10 +55,10 @@ PostgresDatabase::PostgresDatabase(std::shared_ptr<Config> config,
     firstDBVersion = 25; // no need to migrate from older version
     // if postgres.sql or postgres-upgrade.xml is changed hashies have to be updated
     hashies = {
-        2694248237, // index 0 is used for create script postgres.sql = Version 1
+        3713274383, // index 0 is used for create script postgres.sql = Version 1
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // upgrade 2-11
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // upgrade 12-21
-        0, 0, 0, 0,
+        0, 0, 0, 0, 99037268, 2147789230,
         2796031870 // index DBVERSION is used for drop script postgres-drop.sql = Version -1
     };
 }
@@ -79,7 +79,7 @@ std::string PostgresDatabase::prepareDatabase()
 
     if (dbVersion.empty()) {
         log_info("Database doesn't seem to exist. Creating database...");
-        auto itask = std::make_shared<PGScriptTask>(config, hashies[0], stringLimit, ConfigVal::SERVER_STORAGE_PGSQL_DROP_FILE);
+        auto itask = std::make_shared<PGScriptTask>(config, hashies.at(0), stringLimit, ConfigVal::SERVER_STORAGE_PGSQL_INIT_SQL_FILE);
         addTask(itask);
         try {
             itask->waitForTask();
@@ -157,7 +157,7 @@ void PostgresDatabase::dropTables()
 {
     auto file = config->getOption(ConfigVal::SERVER_STORAGE_PGSQL_DROP_FILE);
     log_info("Dropping tables with {}", file);
-    auto dtask = std::make_shared<PGScriptTask>(config, hashies[0], stringLimit, ConfigVal::SERVER_STORAGE_PGSQL_DROP_FILE);
+    auto dtask = std::make_shared<PGScriptTask>(config, hashies.at(DBVERSION), stringLimit, ConfigVal::SERVER_STORAGE_PGSQL_DROP_FILE);
     addTask(dtask);
     try {
         dtask->waitForTask();

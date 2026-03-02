@@ -4,7 +4,7 @@
 
     gerbera-items.module.js - this file is part of Gerbera.
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -108,6 +108,7 @@ export class BrowseItemView extends ItemView {
   constructor(pId) {
     super(pId, 'browse');
     $('#datagrid').show();
+    $('#database').hide();
   }
   get requestData() {
     let result = super.requestData;
@@ -126,6 +127,7 @@ export class SearchItemView extends ItemView {
     this.searchGerberaItems = this.searchGerberaItems.bind(this);
     $('#search').show();
     $('#datagrid').hide();
+    $('#database').hide();
     $('#searchButton').off('click').on('click', this.searchGerberaItems);
 
     $('#searchCaps').text(GerberaApp.serverConfig.searchCaps.split(',').join(', '));
@@ -166,6 +168,7 @@ export class FileItemView extends ItemView {
   constructor(pId) {
     super(pId, 'files');
     $('#datagrid').show();
+    $('#database').hide();
   }
   get requestData() {
     let result = super.requestData;
@@ -189,6 +192,7 @@ export class FileItemView extends ItemView {
 
 const initialize = () => {
   $('#datagrid').html('');
+  $('#database').hide();
   $('#search').hide();
   return Promise.resolve();
 };
@@ -228,17 +232,71 @@ const loadItems = (response, item) => {
   if (response.success) {
     const dataItems = currentItemView.dataItems(response);
     const datagrid = $('#datagrid');
+    const database = $('#database');
 
     if (datagrid.hasClass('grb-dataitems')) {
       datagrid.dataitems('destroy');
     }
-    datagrid.dataitems(dataItems);
+    if (!response.items || response.items.parent_id > 0) {
+      database.hide();
+      datagrid.show();
+      datagrid.dataitems(dataItems);
+    } else {
+      database.show();
+      const exportBtn = $('#exportButton');
+      const importBtn = $('#importButton');
+      exportBtn.off('click').on('click', { action: 'export', id: response.parent_id }, runExportAction);
+      importBtn.off('click').on('click', { action: 'import' }, runImportAction);
+      datagrid.hide();
+    }
+    currentItemView.totalMatches = dataItems.parentItem.total_matches;
     Trail.makeTrailFromItem(dataItems.parentItem, item);
   }
 };
 
 const setPage = (pageNumber) => {
   GerberaApp.setCurrentPage(pageNumber);
+};
+
+const runExportAction = (event) => {
+  var requestData = {
+    req_type: 'action',
+    action: event.data.action
+  };
+  $('#exportMissing').hide();
+  $('#exportCode').hide();
+  requestData[Auth.SID] = Auth.getSessionId();
+  $.ajax({
+    url: GerberaApp.clientConfig.api,
+    type: 'get',
+    data: requestData
+  })
+    .then((response) => {
+      if (response.success && response.items && response.items.item) {
+        const exportCode = $('#exportCode');
+        exportCode.text(JSON.stringify(response.items.item, null, 4));
+        exportCode.show();
+      } else {
+        $('#exportMissing').show();
+      }
+    })
+    .catch((err) => GerberaApp.error(err));
+};
+
+const runImportAction = (event) => {
+  var requestData = {
+    req_type: 'action',
+    action: event.data.action,
+  };
+  requestData[Auth.SID] = Auth.getSessionId();
+  requestData['file_name'] = $('#importFile').val();
+  $.ajax({
+    url: GerberaApp.clientConfig.api,
+    type: 'get',
+    data: requestData
+  })
+    .then((response) => { console.log(response); })
+    .catch((err) => GerberaApp.error(err));
 };
 
 const nextPage = (event) => {
@@ -368,10 +426,63 @@ const downloadItem = (event) => {
   link.download = item.text;
   link.type = item.mtype;
   link.href = item.url;
+  link.target = "_blank";
 
   document.body.appendChild(link);
   link.click();
 
+  document.body.removeChild(link);
+};
+
+const downloadZip = (event) => {
+  const item = event.data;
+  event.preventDefault();
+  GerberaApp.startLoading();
+
+  fetchWithTimeout(item.zip, { timeout: currentItemView.totalMatches * 500 }) // assume 500 ms to zip one file
+    .then(blob => {
+      downloadBlob(blob, item.text, item.mtype);
+      GerberaApp.stopLoading();
+    })
+    .catch(err => {
+      GerberaApp.stopLoading();
+      if (err.name === 'AbortError') {
+        alert('Download: Timeout reacjed!');
+      } else {
+        alert('Download-Error: ' + err.message);
+      }
+    });
+};
+
+const fetchWithTimeout = (resource, options = {}) => {
+  const { timeout = 8000 } = options; // Timeout in ms (z.B. 8000ms = 8s)
+
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+
+  return fetch(resource, {
+    ...options,
+    signal: controller.signal
+  })
+    .then(response => {
+      clearTimeout(id);
+      if (!response.ok)
+        throw new Error('Network response was not ok');
+      return response.blob();
+    });
+};
+
+const downloadBlob = (blob, filename, type) => {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.style.display = 'none';
+  link.href = url;
+  link.type = type;
+  link.download = filename;
+  link.target = "_blank";
+  document.body.appendChild(link);
+  link.click();
+  window.URL.revokeObjectURL(url);
   document.body.removeChild(link);
 };
 
@@ -486,6 +597,7 @@ const transformItems = (items) => {
       size: ('size' in gItem) ? gItem.size : null,
       duration: ('duration' in gItem) ? gItem.duration : null,
       resolution: ('resolution' in gItem) ? gItem.resolution : null,
+      source: ('source' in gItem) ? gItem.source : null,
     };
 
     if (!GerberaApp.serverConfig.enableNumbering) {
@@ -591,6 +703,7 @@ export const Items = {
   deleteGerberaItem,
   destroy,
   downloadItem,
+  downloadZip,
   editItem,
   loadEditItem,
   loadItems,

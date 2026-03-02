@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -153,6 +153,11 @@ private:
         const std::shared_ptr<CdsResource>& res) const;
     /// @brief read specific pcm data
     void extractPcm(
+        TagLib::IOStream& roStream,
+        const std::shared_ptr<CdsItem>& item,
+        const std::shared_ptr<CdsResource>& res) const;
+    /// @brief read specific matroska data
+    void extractMkv(
         TagLib::IOStream& roStream,
         const std::shared_ptr<CdsItem>& item,
         const std::shared_ptr<CdsResource>& res) const;

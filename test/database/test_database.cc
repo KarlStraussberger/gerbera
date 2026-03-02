@@ -4,7 +4,7 @@
 
     test_database.cc - this file is part of Gerbera.
 
-    Copyright (C) 2020-2025 Gerbera Contributors
+    Copyright (C) 2020-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -66,9 +66,9 @@ void DatabaseTestBase::testUpgrade(ConfigVal option)
     auto root = xmlDoc.document_element();
     EXPECT_TRUE(root.name() == std::string_view("upgrade"));
 
-    size_t version = 1;
+    size_t version = subject->getFirstVersion();
     for (auto&& versionElement : root.select_nodes("/upgrade/version")) {
-        const pugi::xml_node& versionNode = versionElement.node();
+        auto versionNode = versionElement.node();
         auto&& myHash = stringHash(UpnpXMLBuilder::printXml(versionNode));
         EXPECT_EQ(myHash, std::dynamic_pointer_cast<SQLDatabase>(subject)->getHash(version));
         version++;

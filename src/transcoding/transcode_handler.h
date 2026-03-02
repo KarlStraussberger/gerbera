@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -49,6 +49,9 @@ class TranscodeHandler {
 public:
     explicit TranscodeHandler(const std::shared_ptr<Content>& content);
     virtual ~TranscodeHandler();
+
+    TranscodeHandler(const TranscodeHandler&) = delete;
+    TranscodeHandler& operator=(const TranscodeHandler&) = delete;
 
     virtual std::unique_ptr<IOHandler> serveContent(const std::shared_ptr<TranscodingProfile>& profile,
         const fs::path& location,

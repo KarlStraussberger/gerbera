@@ -3,7 +3,7 @@
 
     lastfmlib.h - this file is part of Gerbera.
 
-    Copyright (C) 2025 Gerbera Contributors
+    Copyright (C) 2025-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -26,8 +26,10 @@
 
 #ifdef HAVE_CURL
 
+#include <atomic>
 #include <ctime>
 #include <string>
+#include <thread>
 #include <vector>
 
 class SubmissionInfo {
@@ -133,6 +135,10 @@ private:
 
     std::string buildApiSig(const std::vector<std::pair<std::string, std::string>>& params) const;
     std::string postRequest(const std::vector<std::pair<std::string, std::string>>& params) const;
+    std::string getRequest(const std::vector<std::pair<std::string, std::string>>& params) const;
+
+    std::atomic<bool> stopRequested { false };
+    std::thread scrobbleThread;
 };
 
 #endif // HAVE_CURL

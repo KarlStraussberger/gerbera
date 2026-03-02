@@ -14,15 +14,15 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        platform: ['x86_64', 'x86', 'armhf', 'armv7', 'aarch64', 'ppc64le', 'riscv64']
-        branch: ['v3.21', 'v3.22', 'edge']
-    
-    name: Minimal ${{matrix.platform}}${{matrix.branch != 'v3.22' && format(' - {0}', matrix.branch) || format('')}}
+        platform: ['x86_64', 'x86', 'armhf', 'armv7', 'aarch64', 'loongarch64', 'ppc64le', 'riscv64', 's390x']
+        branch: ['v3.22', 'v3.23', 'edge']
+
+    name: Minimal ${{matrix.platform}}${{matrix.branch != 'v3.23' && format(' - {0}', matrix.branch) || format('')}}
     defaults:
       run:
         shell: alpine.sh {0}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: jirutka/setup-alpine@v1
         with:
           branch: ${{matrix.branch}}

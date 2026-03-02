@@ -4,7 +4,7 @@
 
     config_setup_array.cc - this file is part of Gerbera.
 
-    Copyright (C) 2020-2025 Gerbera Contributors
+    Copyright (C) 2020-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -34,17 +34,27 @@
 #include "util/logger.h"
 
 #include <numeric>
+#include <pugixml.hpp>
 
 /// @brief Creates an array of strings from an XML nodeset.
 bool ConfigArraySetup::createOptionFromNode(
+    const std::shared_ptr<Config>& config,
     const pugi::xml_node& element,
     std::vector<std::string>& result)
 {
     if (element) {
-        doExtend = definition->findConfigSetup<ConfigBoolSetup>(ConfigVal::A_LIST_EXTEND)->getXmlContent(element);
+        doExtend = definition->findConfigSetup<ConfigBoolSetup>(ConfigVal::A_LIST_EXTEND)->getXmlContent(element, config);
+        if (config) {
+            config->registerNode(element.path());
+        }
         for (auto&& it : element.select_nodes(definition->mapConfigOption(nodeOption))) {
-            const pugi::xml_node& child = it.node();
-            std::string attrValue = attrOption != ConfigVal::MAX ? child.attribute(definition->removeAttribute(attrOption).c_str()).as_string() : child.text().as_string();
+            auto child = it.node();
+            auto attrKey = (attrOption != ConfigVal::MAX) ? definition->removeAttribute(attrOption) : "";
+            if (config) {
+                config->registerNode(child.path());
+                config->registerNode(fmt::format("{}/attribute::{}", child.path(), attrKey));
+            }
+            std::string attrValue = !attrKey.empty() ? child.attribute(attrKey.c_str()).as_string() : child.text().as_string();
             if (itemCheck) {
                 if (!itemCheck(attrValue))
                     throw_std_runtime_error("Invalid array {} value {} empty '{}'", element.path(), xpath, attrValue);
@@ -58,9 +68,12 @@ bool ConfigArraySetup::createOptionFromNode(
     return true;
 }
 
-void ConfigArraySetup::makeOption(const pugi::xml_node& root, const std::shared_ptr<Config>& config, const std::map<std::string, std::string>* arguments)
+void ConfigArraySetup::makeOption(
+    const pugi::xml_node& root,
+    const std::shared_ptr<Config>& config,
+    const std::map<std::string, std::string>* arguments)
 {
-    newOption(getXmlContent(getXmlElement(root)));
+    newOption(getXmlContent(getXmlElement(root), config));
     setOption(config);
 }
 
@@ -92,7 +105,8 @@ bool ConfigArraySetup::updateItem(
     return false;
 }
 
-bool ConfigArraySetup::createNodeFromDefaults(const std::shared_ptr<pugi::xml_node>& result) const
+bool ConfigArraySetup::createNodeFromDefaults(
+    const std::shared_ptr<pugi::xml_node>& result) const
 {
     if (defaultEntries.empty())
         return false;
@@ -149,7 +163,10 @@ bool ConfigArraySetup::updateDetail(
     return false;
 }
 
-std::string ConfigArraySetup::getItemPath(const std::vector<std::size_t>& indexList, const std::vector<ConfigVal>& propOptions, const std::string& propText) const
+std::string ConfigArraySetup::getItemPath(
+    const std::vector<std::size_t>& indexList,
+    const std::vector<ConfigVal>& propOptions,
+    const std::string& propText) const
 {
     if (attrOption != ConfigVal::MAX) {
         if (indexList.empty())
@@ -166,15 +183,21 @@ std::string ConfigArraySetup::getItemPathRoot(bool prefix) const
     return fmt::format("{}/{}", xpath, definition->mapConfigOption(nodeOption));
 }
 
-std::vector<std::string> ConfigArraySetup::getXmlContent(const pugi::xml_node& optValue)
+std::vector<std::string> ConfigArraySetup::getXmlContent(
+    const pugi::xml_node& optValue,
+    const std::shared_ptr<Config>& config)
 {
     std::vector<std::string> result;
     if (initArray) {
         if (!initArray(optValue, result, definition->mapConfigOption(nodeOption))) {
             throw_std_runtime_error("Invalid {} array value '{}'", xpath, optValue.name());
         }
+        if (config) {
+            config->registerNode(optValue.path());
+            config->registerNode(fmt::format("{}/{}", optValue.path(), definition->mapConfigOption(nodeOption)));
+        }
     } else {
-        if (!createOptionFromNode(optValue, result)) {
+        if (!createOptionFromNode(config, optValue, result)) {
             throw_std_runtime_error("Invalid {} array value '{}'", xpath, optValue.name());
         }
     }
@@ -190,6 +213,11 @@ std::vector<std::string> ConfigArraySetup::getXmlContent(const pugi::xml_node& o
         throw_std_runtime_error("Invalid array {} empty '{}'", xpath, optValue.name());
     }
     return result;
+}
+
+std::string ConfigArraySetup::getCurrentValue() const
+{
+    return fmt::format("[{}]", fmt::join(optionValue->getArrayOption(), ", "));
 }
 
 bool ConfigArraySetup::checkArrayValue(const std::string& value, std::vector<std::string>& result) const
@@ -218,7 +246,7 @@ bool ConfigArraySetup::InitPlayedItemsMark(const pugi::xml_node& value, std::vec
 {
     if (value && !value.empty()) {
         for (auto&& it : value.select_nodes(nodeName)) {
-            const pugi::xml_node& content = it.node();
+            auto content = it.node();
             std::string markContent = content.text().as_string();
             if (markContent.empty()) {
                 log_error("error in configuration, <{}>, empty <{}> parameter", value.name(), nodeName);
@@ -243,7 +271,7 @@ bool ConfigArraySetup::InitItemsPerPage(const pugi::xml_node& value, std::vector
     if (value && !value.empty()) {
         // create the array from user settings
         for (auto&& it : value.select_nodes(nodeName)) {
-            const pugi::xml_node& child = it.node();
+            auto child = it.node();
             int i = child.text().as_int();
             if (i < 1) {
                 log_error("Error in config file: incorrect <{}> value for <{}>", nodeName, value.name());

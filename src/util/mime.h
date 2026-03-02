@@ -4,7 +4,7 @@
 
     mime.h - this file is part of Gerbera.
 
-    Copyright (C) 2021-2025 Gerbera Contributors
+    Copyright (C) 2021-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -27,11 +27,11 @@
 #define __MIME_H__
 
 #include <map>
-#include <mutex>
 
 #include "util/grb_fs.h"
 
 #ifdef HAVE_MAGIC
+#include <mutex>
 // for older versions of filemagic
 extern "C" {
 #include <magic.h>

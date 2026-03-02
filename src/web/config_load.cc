@@ -4,7 +4,7 @@
 
     web/config_load.cc - this file is part of Gerbera.
 
-    Copyright (C) 2020-2025 Gerbera Contributors
+    Copyright (C) 2020-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -48,7 +48,6 @@
 #include "database/db_param.h"
 
 #include <fmt/chrono.h>
-#include <numeric>
 
 #define CONFIG_LOAD_AID "aid"
 #define CONFIG_LOAD_DEFAULTVALUE "defaultValue"
@@ -162,12 +161,6 @@ template <>
 void Web::ConfigLoad::setValue(Json::Value& item, const std::string& value)
 {
     item[CONFIG_LOAD_VALUE] = value;
-}
-
-template <>
-void Web::ConfigLoad::setValue(Json::Value& item, const std::string_view& value)
-{
-    item[CONFIG_LOAD_VALUE] = value.data();
 }
 
 template <>
@@ -660,6 +653,9 @@ void Web::ConfigLoad::writeBoxLayout(Json::Value& values)
             cs->getItemPath(indexList, { ConfigVal::A_BOXLAYOUT_BOX, ConfigVal::A_BOXLAYOUT_BOX_ENABLED }),
             cs->option, ConfigVal::A_BOXLAYOUT_BOX_ENABLED, cont->getEnabled());
         addValue(values,
+            cs->getItemPath(indexList, { ConfigVal::A_BOXLAYOUT_BOX, ConfigVal::A_BOXLAYOUT_BOX_SEARCHABLE }),
+            cs->option, ConfigVal::A_BOXLAYOUT_BOX_SEARCHABLE, cont->getSearchable());
+        addValue(values,
             cs->getItemPath(indexList, { ConfigVal::A_BOXLAYOUT_BOX, ConfigVal::A_BOXLAYOUT_BOX_UPNP_SHORTCUT }),
             cs->option, ConfigVal::A_BOXLAYOUT_BOX_UPNP_SHORTCUT, cont->getUpnpShortcut());
         addValue(values,
@@ -679,10 +675,10 @@ void Web::ConfigLoad::writeBoxLayout(Json::Value& values)
             for (auto&& [key, value] : link) {
                 indexList = { i, j, k };
                 addValue(values,
-                    cs->getItemPath(indexList, { ConfigVal::A_BOXLAYOUT_CHAIN, ConfigVal::A_BOXLAYOUT_CHAIN_LINKS, ConfigVal::A_BOXLAYOUT_CHAIN_LINK }, ConfigBoxLayoutSetup::linkKey.data()),
+                    cs->getItemPath(indexList, { ConfigVal::A_BOXLAYOUT_CHAIN, ConfigVal::A_BOXLAYOUT_CHAIN_LINKS, ConfigVal::A_BOXLAYOUT_CHAIN_LINK }, ConfigBoxLayoutSetup::linkKey),
                     cs->option, ConfigVal::A_BOXLAYOUT_CHAIN_LINK, key);
                 addValue(values,
-                    cs->getItemPath(indexList, { ConfigVal::A_BOXLAYOUT_CHAIN, ConfigVal::A_BOXLAYOUT_CHAIN_LINKS, ConfigVal::A_BOXLAYOUT_CHAIN_LINK }, ConfigBoxLayoutSetup::linkValue.data()),
+                    cs->getItemPath(indexList, { ConfigVal::A_BOXLAYOUT_CHAIN, ConfigVal::A_BOXLAYOUT_CHAIN_LINKS, ConfigVal::A_BOXLAYOUT_CHAIN_LINK }, ConfigBoxLayoutSetup::linkValue),
                     cs->option, ConfigVal::A_BOXLAYOUT_CHAIN_LINK, value);
                 k++;
             }
@@ -714,11 +710,11 @@ void Web::ConfigLoad::writeBoxLayout(Json::Value& values)
         cs->option, ConfigVal::A_BOXLAYOUT_CHAIN_TYPE, definition->findConfigSetup(ConfigVal::A_BOXLAYOUT_CHAIN_TYPE));
 
     addNewValue(values,
-        cs->getItemPath(ITEM_PATH_NEW, { ConfigVal::A_BOXLAYOUT_CHAIN, ConfigVal::A_BOXLAYOUT_CHAIN_LINKS, ConfigVal::A_BOXLAYOUT_CHAIN_LINK }, ConfigBoxLayoutSetup::linkKey.data()),
+        cs->getItemPath(ITEM_PATH_NEW, { ConfigVal::A_BOXLAYOUT_CHAIN, ConfigVal::A_BOXLAYOUT_CHAIN_LINKS, ConfigVal::A_BOXLAYOUT_CHAIN_LINK }, ConfigBoxLayoutSetup::linkKey),
         cs->option, ConfigVal::A_BOXLAYOUT_CHAIN_LINK, definition->findConfigSetup(ConfigVal::A_BOXLAYOUT_CHAIN_LINK));
 
     addNewValue(values,
-        cs->getItemPath(ITEM_PATH_NEW, { ConfigVal::A_BOXLAYOUT_CHAIN, ConfigVal::A_BOXLAYOUT_CHAIN_LINKS, ConfigVal::A_BOXLAYOUT_CHAIN_LINK }, ConfigBoxLayoutSetup::linkValue.data()),
+        cs->getItemPath(ITEM_PATH_NEW, { ConfigVal::A_BOXLAYOUT_CHAIN, ConfigVal::A_BOXLAYOUT_CHAIN_LINKS, ConfigVal::A_BOXLAYOUT_CHAIN_LINK }, ConfigBoxLayoutSetup::linkValue),
         cs->option, ConfigVal::A_BOXLAYOUT_CHAIN_LINK, definition->findConfigSetup(ConfigVal::A_BOXLAYOUT_CHAIN_LINK));
 }
 
@@ -748,6 +744,9 @@ void Web::ConfigLoad::writeTranscoding(Json::Value& values)
         addValue(values,
             cs->getItemPath(indexList, { ConfigVal::A_TRANSCODING_MIMETYPE_FILTER, ConfigVal::A_TRANSCODING_PROFILES_PROFLE_CLIENTFLAGS }),
             cs->option, ConfigVal::A_TRANSCODING_PROFILES_PROFLE_CLIENTFLAGS, ClientConfig::mapFlags(filter->getClientFlags()), cs);
+        addValue(values,
+            cs->getItemPath(indexList, { ConfigVal::A_TRANSCODING_MIMETYPE_FILTER, ConfigVal::A_TRANSCODING_PROFILES_PROFLE_CLIENTFLAGS }),
+            cs->option, ConfigVal::A_TRANSCODING_PROFILES_PROFLE_CLIENTWITHOUT, filter->matchesWithOut(), cs);
 
         if (filter->getTranscodingProfile())
             profiles[filter->getTranscodingProfile()->getName()] = filter->getTranscodingProfile();
@@ -767,6 +766,9 @@ void Web::ConfigLoad::writeTranscoding(Json::Value& values)
         addValue(values,
             cs->getItemPath(indexList, { ConfigVal::A_TRANSCODING_PROFILES_PROFLE, ConfigVal::A_TRANSCODING_PROFILES_PROFLE_CLIENTFLAGS }),
             cs->option, ConfigVal::A_TRANSCODING_PROFILES_PROFLE_CLIENTFLAGS, ClientConfig::mapFlags(entry->getClientFlags()));
+        addValue(values,
+            cs->getItemPath(indexList, { ConfigVal::A_TRANSCODING_PROFILES_PROFLE, ConfigVal::A_TRANSCODING_PROFILES_PROFLE_CLIENTWITHOUT }),
+            cs->option, ConfigVal::A_TRANSCODING_PROFILES_PROFLE_CLIENTWITHOUT, entry->matchesWithOut(), cs);
         addValue(values,
             cs->getItemPath(indexList, { ConfigVal::A_TRANSCODING_PROFILES_PROFLE, ConfigVal::A_TRANSCODING_PROFILES_PROFLE_ENABLED }),
             cs->option, ConfigVal::A_TRANSCODING_PROFILES_PROFLE_ENABLED, entry->isEnabled());
@@ -833,7 +835,7 @@ void Web::ConfigLoad::writeTranscoding(Json::Value& values)
                 addValue(values,
                     cs->getItemPath(indexList, { ConfigVal::A_TRANSCODING_PROFILES_PROFLE, ConfigVal::A_TRANSCODING_PROFILES_PROFLE_AVI4CC, ConfigVal::A_TRANSCODING_PROFILES_PROFLE_AVI4CC_4CC }),
                     cs->option, ConfigVal::A_TRANSCODING_PROFILES_PROFLE_AVI4CC_4CC,
-                    std::accumulate(next(fourCCList.begin()), fourCCList.end(), fourCCList[0], [](auto&& a, auto&& b) { return fmt::format("{}, {}", a, b); }));
+                    fmt::format("{}", fmt::join(fourCCList, ", ")));
             }
         }
         pr++;

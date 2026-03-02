@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -62,7 +62,7 @@ bool Web::Containers::processPageAction(Json::Value& element, const std::string&
     auto flags = BROWSE_DIRECT_CHILDREN | BROWSE_CONTAINERS;
     if (config->getBoolOption(ConfigVal::SERVER_HIDE_PC_DIRECTORY_WEB))
         flags |= BROWSE_HIDE_FS_ROOT;
-    auto browseParam = BrowseParam(database->loadObject(getGroup(), parentID), flags);
+    auto browseParam = BrowseParam(database->loadObject(parentID, getGroup()), flags);
     auto arr = database->browse(browseParam);
     for (auto&& obj : arr) {
         auto cont = std::static_pointer_cast<CdsContainer>(obj);
@@ -70,11 +70,19 @@ bool Web::Containers::processPageAction(Json::Value& element, const std::string&
         ce["id"] = cont->getID();
         ce["ref_id"] = cont->getRefID();
         ce["child_count"] = cont->getChildCount();
+        ce["source"] = CdsObject::mapSource(cont->getSource());
 
         auto url = xmlBuilder->renderContainerImageURL(cont);
         if (url) {
             ce["image"] = url.value();
         }
+
+#ifdef HAVE_ZIP
+        auto zip = xmlBuilder->renderContainerZipURL(cont);
+        if (zip) {
+            ce["zip"] = zip.value();
+        }
+#endif
 
         auto autoscanType = cont->getAutoscanType();
         std::string autoscanMode = (autoscanType != AutoscanType::None) ? AUTOSCAN_TIMED : "none";
@@ -91,7 +99,7 @@ bool Web::Containers::processPageAction(Json::Value& element, const std::string&
             }
         }
 #endif
-        ce["autoscan_type"] = mapAutoscanType(autoscanType).data();
+        ce["autoscan_type"] = mapAutoscanType(autoscanType);
         ce["autoscan_mode"] = autoscanMode;
         ce["persistent"] = cont->getFlags() & OBJECT_FLAG_PERSISTENT_CONTAINER ? true : false;
         ce["title"] = cont->getTitle();

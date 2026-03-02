@@ -3,7 +3,7 @@
 
     postgres_database.h - this file is part of Gerbera.
 
-    Copyright (C) 2025 Gerbera Contributors
+    Copyright (C) 2025-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -28,7 +28,6 @@
 #include "util/thread_runner.h"
 #include "util/timer.h"
 
-#include <mutex>
 #include <pqxx/pqxx>
 #include <queue>
 

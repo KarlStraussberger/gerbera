@@ -10,7 +10,7 @@ Gerbera - https://gerbera.io/
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -32,7 +32,8 @@ Gerbera - https://gerbera.io/
 
 #include "util/grb_time.h"
 
-CdsContainer::CdsContainer()
+CdsContainer::CdsContainer(CdsEntryType type)
+    : CdsObject(type)
 {
     objectType = OBJECT_TYPE_CONTAINER;
     upnpClass = UPNP_CLASS_CONTAINER;

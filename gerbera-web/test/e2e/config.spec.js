@@ -4,7 +4,7 @@
 
     config.spec.js - this file is part of Gerbera.
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -56,7 +56,7 @@ describe('Config Suite', () => {
       await homePage.showConfig('Server');
 
       let result = await homePage.editOverlayFieldValue('grb_value__server_modelNumber');
-      expect(result).to.equal('2.6.0');
+      expect(result).to.equal('3.2.0');
 
       await homePage.setEditorOverlayField('grb_value__server_modelNumber', '43');
 

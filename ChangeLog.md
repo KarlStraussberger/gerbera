@@ -2,26 +2,122 @@
 
 ### HEAD
 
+- Bump basic-ftp from 5.1.0 to 5.2.0 in /gerbera-web
+- Bump lodash from 4.17.21 to 4.17.23 in /gerbera-web
+- Bump minimatch in /gerbera-web
+- Bump qs from 6.14.1 to 6.14.2 in /gerbera-web
+- Document MARIADB_TLS_DISABLE_PEER_VERIFICATION
+- Export and import changed object from database
+- Extend content type filter configuration
+- FFmpeg: configuration for stream data import
+- Keep track of changed objects
+- Load Config file modules
+- Reduce almost duplicate methods
+- Refactor FFMpegThumbnailer
+- Show changed items in UI
+- Split off Database Migrations
+- Update npm and web ui tests
+- Update libexiv2 to 0.28.8
+- Update npupnp to 6.2.3
+- Update to pupnp 1.18.0
+- Upgrade to taglib 2.2 with new file type and filtering
+- Use entry_type instead of location prefix
+- xsd improvement
+
+### v3.1.1
+
+- cope with su-exec breaking change
+- Update wavpack to 5.9.0
+
+### v3.1.0
+
+- accumulate to join
+- Add community scripts
+- add missing array headers
+- add missing headers from headers
+- Align transcoding flag documentation and code
+- Avoid string_view conversion
+- Bump actions/cache from 4 to 5
+- Bump actions/checkout from 5 to 6
+- Bump actions/upload-artifact from 5 to 6
+- Bump js-yaml from 4.1.0 to 4.1.1 in /gerbera-web
+- Bump min-document from 2.19.0 to 2.19.2 in /gerbera-web
+- CI: Add debug docker image
+- CI: Add test to docker
+- Clean up obsolete includes
+- don't use references for node()
+- enable i2i for HAVE_CURL
+- Extract default database configuration strings
+- fix compilation under OmniOS
+- fix definition of client-without-flag
+- fix edit for container
+- fix error handling in string_converter
+- fix sortKey for extra long numbers
+- fix typos in documentation
+- Fix Wavpack context
+- Fix Wavpack importer
+- Gerbera welcomes 2026
+- github CI: add loongarch64
+- header removals and destructor fix.
+- Improve date parsing
+- improve Samsung TVs quirks
+- JS: allow disabling boxes in initals audio layout
+- More CI checks
+- More FFMPeg Resource Information
+- more pugi forward declarations
+- Negation of client-flags
+- New import scripts for images and videos
+- Refactor Quirks to enum
+- remove unique_ptr from std::vector
+- remove unique_ptr from xml_document
+- remove various string_view data usages
+- replaced lock_guard with scoped_lock
+- samsung bookmark save/restore
+- simplify using quirks
+- transcoding: filtering of clients without flags
+- UI: Add ZIP download of container
+- Update Alpine to v3.23
+- Update Conan integration
+- Update ffmpegthumbnailer to 2.2.4
+- Update ffmpegthumbnailer to 2.3.0
+- Update screenshots
+- Update spdlog to 1.17.0
+- use correct name for boxlayout enabled years
+- use more fmt::join
+- use optional instead of unique_ptr
+- use Quirk::DCM10 flag
+
+### v3.0.0
+
 - Add support for libsystemd
 - Add Test for formatSizeValue
 - Allow masking arguments
 - Block client group
-- Bump actions/setup-node from 5 to 6
-- Bump github/codeql-action from 3 to 4
 - Build for ubuntu-25.10
+- Bump actions/setup-node from 5 to 6
+- Bump actions/upload-artifact from 4 to 5
+- Bump github/codeql-action from 3 to 4
 - Check Headers in Quirks
 - CI Tests: Try more alpine versions
+- clazy fixes
 - Command line option for even more config details
 - Command line option to drop database tables
+- Config XML Schemas
+- Configure searchable flags via BoxLayout
 - Documentation on Return Path Filtering
 - Enable ICU for MacOS
 - Fix derivedFrom search handling
-- Fix formatSizeValue on 32-bit systems
 - Fix docker libqxx library pattern
 - Fix dynamic folders for lowercase trees
+- Fix formatSizeValue on 32-bit systems
+- Fix help message for option "-c"
 - Fix help test
 - Fix ProxyUrl for external items
+- Fix title from wrong stream
+- Fixing Searchable flag in import script
+- forward declare pugixml classes
 - Handle title from nfo correctly
+- Hide boxkey values
 - Implement new Client Quirk to force SortCriteria 'title'
 - Improve MacOS build
 - Introduce sphinx toolbox
@@ -30,15 +126,20 @@
 - Quirk to block protocolInfo in CaptionInfoEx
 - Reduce code duplication in XmlBuilder
 - Remove loading complete scripts to create virutal layout
+- remove unique_ptr from ProcListItem vector
+- Restrict number of subtitle bytes to read
 - Rotation of thumbnails by ffmpegthumbnailer
+- Track unused config file entries
 - Unify doxygen tags
 - Update CMakeLists.txt for ICU on APPLE
 - Update to exiv2 v0.28.6
 - Update to exiv2 v0.28.7
 - Update to fmt 12.0.0
+- Update to fmt 12.1.0
 - Update to pupnp 1.14.25
 - Update to spdlog 1.16.0
 - Use new confval links in help
+- various small cleanups
 - WavPack under MacOS
 - WebUI: Show referenced items in details
 - WebUI: Show spinner on loading

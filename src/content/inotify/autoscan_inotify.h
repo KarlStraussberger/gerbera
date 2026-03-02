@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -33,6 +33,7 @@
 #ifndef __AUTOSCAN_INOTIFY_H__
 #define __AUTOSCAN_INOTIFY_H__
 
+#ifdef HAVE_INOTIFY
 #include "inotify_manager.h"
 #include "util/grb_fs.h"
 
@@ -169,4 +170,5 @@ private:
         const std::shared_ptr<AutoscanDirectory>& adir);
 };
 
+#endif // HAVE_INOTIFY
 #endif // __AUTOSCAN_INOTIFY_H__

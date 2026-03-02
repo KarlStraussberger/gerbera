@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -54,7 +54,9 @@ duk_ret_t jsUpdateCdsObject(duk_context* ctx);
 
 class ParserScript : public Script {
 public:
+    /// @brief read next non-empty line from file
     std::pair<std::string, bool> readLine();
+    /// @brief read next non-empty xml tag from file
     pugi::xml_node& readXml(int direction);
 
 protected:
@@ -67,13 +69,14 @@ protected:
     ~ParserScript() override;
 
     static pugi::xml_node nullNode;
+    /// @brief maximum length of one text line
     static constexpr int ONE_TEXTLINE_BYTES = 1024;
 
     std::FILE* currentHandle {};
     int currentObjectID { INVALID_OBJECT_ID };
     char* currentLine {};
     std::shared_ptr<GenericTask> currentTask;
-    std::unique_ptr<pugi::xml_document> xmlDoc { std::make_unique<pugi::xml_document>() };
+    pugi::xml_document xmlDoc;
     pugi::xml_node root;
 };
 

@@ -4,7 +4,7 @@
 
     config_setup_dictionary.cc - this file is part of Gerbera.
 
-    Copyright (C) 2020-2025 Gerbera Contributors
+    Copyright (C) 2020-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -35,20 +35,30 @@
 #include "util/tools.h"
 
 #include <numeric>
+#include <pugixml.hpp>
 
 /// @brief Creates a dictionary from an XML nodeset.
 bool ConfigDictionarySetup::createOptionFromNode(
+    const std::shared_ptr<Config>& config,
     const pugi::xml_node& element,
     std::map<std::string, std::string>& result)
 {
     if (element) {
-        doExtend = definition->findConfigSetup<ConfigBoolSetup>(ConfigVal::A_LIST_EXTEND)->getXmlContent(element);
+        doExtend = definition->findConfigSetup<ConfigBoolSetup>(ConfigVal::A_LIST_EXTEND)->getXmlContent(element, config);
         const auto dictNodes = element.select_nodes(definition->mapConfigOption(nodeOption));
         auto keyAttr = definition->removeAttribute(keyOption);
         auto valAttr = definition->removeAttribute(valOption);
+        if (config) {
+            config->registerNode(element.path());
+        }
 
         for (auto&& it : dictNodes) {
-            const pugi::xml_node child = it.node();
+            auto child = it.node();
+            if (config) {
+                config->registerNode(child.path());
+                config->registerNode(fmt::format("{}/attribute::{}", child.path(), keyAttr));
+                config->registerNode(fmt::format("{}/attribute::{}", child.path(), valAttr));
+            }
             std::string key = child.attribute(keyAttr.c_str()).as_string();
             std::string value = child.attribute(valAttr.c_str()).as_string();
             if (key.empty()) {
@@ -75,7 +85,7 @@ void ConfigDictionarySetup::makeOption(const pugi::xml_node& root, const std::sh
     if (arguments && arguments->find("tolower") != arguments->end()) {
         tolower = arguments->at("tolower") == "true";
     }
-    newOption(getXmlContent(getXmlElement(root)));
+    newOption(getXmlContent(getXmlElement(root), config));
     setOption(config);
 }
 
@@ -135,7 +145,8 @@ bool ConfigDictionarySetup::updateItem(
     return false;
 }
 
-bool ConfigDictionarySetup::updateDetail(const std::string& optItem,
+bool ConfigDictionarySetup::updateDetail(
+    const std::string& optItem,
     std::string& optValue,
     const std::shared_ptr<Config>& config,
     const std::map<std::string, std::string>* arguments)
@@ -181,7 +192,10 @@ bool ConfigDictionarySetup::updateDetail(const std::string& optItem,
     return false;
 }
 
-std::string ConfigDictionarySetup::getItemPath(const std::vector<std::size_t>& indexList, const std::vector<ConfigVal>& propOptions, const std::string& propText) const
+std::string ConfigDictionarySetup::getItemPath(
+    const std::vector<std::size_t>& indexList,
+    const std::vector<ConfigVal>& propOptions,
+    const std::string& propText) const
 {
     auto opt = !propOptions.empty() ? definition->ensureAttribute(propOptions[0]) : "";
     if (indexList.empty()) {
@@ -205,7 +219,9 @@ std::string ConfigDictionarySetup::getUniquePath() const
     return fmt::format("{}/{}", xpath, definition->mapConfigOption(nodeOption));
 }
 
-std::map<std::string, std::string> ConfigDictionarySetup::getXmlContent(const pugi::xml_node& optValue)
+std::map<std::string, std::string> ConfigDictionarySetup::getXmlContent(
+    const pugi::xml_node& optValue,
+    const std::shared_ptr<Config>& config)
 {
     std::map<std::string, std::string> result;
     if (initDict) {
@@ -213,7 +229,7 @@ std::map<std::string, std::string> ConfigDictionarySetup::getXmlContent(const pu
             throw_std_runtime_error("Init {} dictionary failed '{}'", xpath, optValue.name());
         }
     } else {
-        if (!createOptionFromNode(optValue, result) && required) {
+        if (!createOptionFromNode(config, optValue, result) && required) {
             throw_std_runtime_error("Init {} dictionary failed '{}'", xpath, optValue.name());
         }
     }
@@ -229,6 +245,16 @@ std::map<std::string, std::string> ConfigDictionarySetup::getXmlContent(const pu
         throw_std_runtime_error("Invalid dictionary {} empty '{}'", xpath, optValue.name());
     }
     return result;
+}
+
+std::string ConfigDictionarySetup::getCurrentValue() const
+{
+    auto dict = optionValue->getDictionaryOption();
+    auto list = std::vector<std::string>();
+    list.reserve(dict.size());
+    for (auto&& [k, v] : dict)
+        list.push_back(fmt::format("{}={}", k, v));
+    return fmt::format("[{}]", fmt::join(list, ", "));
 }
 
 std::shared_ptr<ConfigOption> ConfigDictionarySetup::newOption(const std::map<std::string, std::string>& optValue)

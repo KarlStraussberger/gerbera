@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -56,9 +56,10 @@ template <class Col>
 class EnumColumnMapper;
 enum class BrowseColumn;
 enum class ResourceDataType;
+enum class ObjectSource;
 enum class Operation;
 
-#define DBVERSION 25
+#define DBVERSION 27
 #define STRING_LIMIT "GRBMAX"
 
 #define INTERNAL_SETTINGS_TABLE "mt_internal_setting"
@@ -96,12 +97,21 @@ public:
     void addObject(const std::shared_ptr<CdsObject>& obj, int* changedContainer) override;
     void updateObject(const std::shared_ptr<CdsObject>& obj, int* changedContainer) override;
 
-    std::shared_ptr<CdsObject> loadObject(int objectID) override;
-    std::shared_ptr<CdsObject> loadObject(const std::string& group, int objectID) override;
-    int getChildCount(int contId, bool containers, bool items, bool hideFsRoot) override;
-    std::map<int, int> getChildCounts(const std::vector<int>& contId, bool containers, bool items, bool hideFsRoot) override;
+    std::shared_ptr<CdsObject> loadObject(
+        int objectID,
+        const std::string& group = UNUSED_CLIENT_GROUP) override;
+    std::map<int, int> getChildCounts(
+        const std::vector<int>& contId,
+        bool containers,
+        bool items,
+        bool hideFsRoot) override;
 
-    std::size_t getObjects(int parentID, bool withoutContainer, std::unordered_set<int>& ret, bool full) override;
+    std::size_t getObjects(
+        int parentID,
+        bool withoutContainer,
+        std::unordered_set<int>& ret,
+        bool full,
+        int refID) override;
     std::vector<int> getRefObjects(int objectId) override;
     std::unordered_set<int> getUnreferencedObjects() override;
 
@@ -110,10 +120,6 @@ public:
 
     std::shared_ptr<CdsObject> loadObjectByServiceID(const std::string& serviceID, const std::string& group) override;
     std::vector<int> getServiceObjectIDs(char servicePrefix) override;
-
-    /* accounting methods */
-    long long getFileStats(const StatsParam& stats) override;
-    std::map<std::string, long long> getGroupStats(const StatsParam& stats) override;
 
     std::vector<std::shared_ptr<CdsObject>> browse(BrowseParam& param) override;
     std::vector<std::shared_ptr<CdsObject>> search(SearchParam& param) override;
@@ -126,12 +132,23 @@ public:
         int startIndex,
         int count,
         const std::string& group) override;
-    std::shared_ptr<CdsObject> findObjectByPath(const fs::path& fullpath, const std::string& group, DbFileType fileType = DbFileType::Auto) override;
-    int findObjectIDByPath(const fs::path& fullpath, DbFileType fileType = DbFileType::Auto) override;
+    std::shared_ptr<CdsObject> findObjectByPath(
+        const fs::path& fullpath,
+        const std::string& group,
+        DbFileType fileType = DbFileType::Auto) override;
     std::string incrementUpdateIDs(const std::unordered_set<int>& ids) override;
 
     fs::path buildContainerPath(int parentID, const std::string& title) override;
-    bool addContainer(int parentContainerId, std::string virtualPath, const std::shared_ptr<CdsContainer>& cont, int* containerID) override;
+    bool addContainer(
+        int parentContainerId,
+        std::string virtualPath,
+        const std::shared_ptr<CdsContainer>& cont,
+        int* containerID) override;
+
+    /* accounting methods */
+    long long getFileStats(const StatsParam& stats) override;
+    std::map<std::string, long long> getGroupStats(const StatsParam& stats) override;
+
     std::string getInternalSetting(const std::string& key) override;
     void storeInternalSetting(const std::string& key, const std::string& value) override = 0;
 
@@ -174,6 +191,8 @@ public:
     void deleteRow(const std::string& tableName, const std::string& key, const T& value);
     void deleteRows(std::string_view tableName, const std::string& key, const std::vector<int>& values);
 
+    int getFirstVersion() const override { return firstDBVersion; };
+
 protected:
     std::shared_ptr<Mime> mime;
     std::shared_ptr<ConverterManager> converterManager;
@@ -203,18 +222,6 @@ protected:
     /// @brief create core entries in fresh database
     void fillDatabase();
 
-    /// @brief migrate metadata from mt_cds_objects to mt_metadata before removing the column (DBVERSION 12)
-    bool doMetadataMigration();
-    /// @brief migrate metadata for cdsObject
-    void migrateMetadata(int objectId, const std::string& metadataStr);
-
-    /// @brief Add a column to resource table for each defined resource attribute
-    void prepareResourceTable(const std::map<ResourceDataType, std::string_view>& addResourceColumnCmd);
-    /// @brief migrate resources from mt_cds_objects to grb_resource before removing the column (DBVERSION 13)
-    bool doResourceMigration();
-    /// @brief migrate resource data for cdsObject
-    void migrateResources(int objectId, const std::string& resourcesStr);
-
     /// @brief upgrade database version by applying migration commands
     void upgradeDatabase(
         unsigned int dbVersion,
@@ -238,7 +245,6 @@ private:
     std::string sql_meta_query;
     std::string sql_autoscan_query;
     std::string sql_resource_query;
-    std::map<ResourceDataType, std::string_view> addResourceColumnCmd;
 
     /// @brief Configuration content for dynamic folders
     std::shared_ptr<DynamicContentList> dynamicContentList;
@@ -282,14 +288,18 @@ private:
     static std::shared_ptr<AutoscanDirectory> _fillAutoscanDirectory(const std::unique_ptr<SQLRow>& row);
     std::vector<int> _checkOverlappingAutoscans(const std::shared_ptr<AutoscanDirectory>& adir);
 
-    /* location helper: filesystem path or virtual path to db location*/
-    static std::string addLocationPrefix(char prefix, const fs::path& path, const std::string_view& suffix = "");
-    /* location helpers: db location to filesystem path */
-    static std::pair<fs::path, char> stripLocationPrefix(std::string_view dbLocation);
-
     std::shared_ptr<CdsObject> checkRefID(const std::shared_ptr<CdsObject>& obj);
-    int createContainer(int parentID, const std::string& name, const std::string& virtualPath, int flags, bool isVirtual, const std::string& upnpClass, int refID,
-        const std::vector<std::pair<std::string, std::string>>& itemMetadata, const std::vector<std::shared_ptr<CdsResource>>& itemResources = {});
+    int createContainer(
+        int parentID,
+        const std::string& name,
+        const std::string& virtualPath,
+        int flags,
+        bool isVirtual,
+        const std::string& upnpClass,
+        int refID,
+        ObjectSource source,
+        const std::vector<std::pair<std::string, std::string>>& itemMetadata,
+        const std::vector<std::shared_ptr<CdsResource>>& itemResources = {});
 
     static bool remapBool(const std::string& field) { return field == "1"; }
     static bool remapBool(int field) { return field == 1; }
@@ -297,6 +307,7 @@ private:
     std::shared_ptr<SQLEmitter> sqlEmitter;
 
     using AutoLock = std::scoped_lock<std::mutex>;
+    friend class SQLMigration;
 };
 
 template <typename T>

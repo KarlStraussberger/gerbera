@@ -4,7 +4,7 @@
 
     curl_online_service.h - this file is part of Gerbera.
 
-    Copyright (C) 2021-2025 Gerbera Contributors
+    Copyright (C) 2021-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -34,13 +34,16 @@
 #include "online_service.h"
 
 #include <curl/curl.h>
-#include <pugixml.hpp>
 
 // forward declaration
 class Content;
 class Context;
 class ConverterManager;
 class CdsObject;
+
+namespace pugi {
+class xml_document;
+} // namespace pugi
 
 /// @brief this class is responsible for creating objects from the CurlContentHandler
 /// metadata XML.

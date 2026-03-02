@@ -4,7 +4,7 @@
 
     device_description_handler.cc - this file is part of Gerbera.
 
-    Copyright (C) 2020-2025 Gerbera Contributors
+    Copyright (C) 2020-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -103,12 +103,12 @@ std::string DeviceDescriptionHandler::getPresentationUrl(const std::string& ip, 
 
 struct ServiceCapabilityValues {
     std::string value;
-    QuirkFlags quirkFlags;
+    Quirk quirkFlags;
 };
 
 struct ServiceCapabilities {
-    std::string_view serviceType;
-    QuirkFlags quirkFlags;
+    const char* serviceType;
+    Quirk quirkFlags;
     std::vector<ServiceCapabilityValues> serviceValues;
 };
 
@@ -155,33 +155,33 @@ std::string DeviceDescriptionHandler::renderDeviceDescription(const std::string&
     // add service details
     {
         const ServiceCapabilities deviceStringProperties[] = {
-            { "dlna:X_DLNACAP", QUIRK_FLAG_NONE, {} },
-            { "dlna:X_DLNADOC", QUIRK_FLAG_NONE, { { "DMS-1.50", QUIRK_FLAG_NONE } } },
-            { "dlna:X_DLNADOC", QUIRK_FLAG_SAMSUNG, { { "M-DMS-1.50", QUIRK_FLAG_NONE } } },
-            { "deviceType", QUIRK_FLAG_NONE, { { "urn:schemas-upnp-org:device:MediaServer:1", QUIRK_FLAG_NONE } } },
-            { "presentationURL", QUIRK_FLAG_NONE, { { getPresentationUrl(ip, port), QUIRK_FLAG_NONE } } },
-            { "sec:ProductCap", QUIRK_FLAG_NONE, {
-                                                     { "smi", QUIRK_FLAG_NONE },
-                                                     { "DCM10", QUIRK_FLAG_SAMSUNG },
-                                                     { "getMediaInfo.sec", QUIRK_FLAG_NONE },
-                                                     { "getCaptionInfo.sec", QUIRK_FLAG_NONE },
-                                                 } },
-            { "sec:X_ProductCap", QUIRK_FLAG_SAMSUNG, {
-                                                          { "smi", QUIRK_FLAG_NONE },
-                                                          { "DCM10", QUIRK_FLAG_NONE },
-                                                          { "getMediaInfo.sec", QUIRK_FLAG_NONE },
-                                                          { "getCaptionInfo.sec", QUIRK_FLAG_NONE },
-                                                      } },
+            { "dlna:X_DLNACAP", Quirk::None, {} },
+            { "dlna:X_DLNADOC", Quirk::None, { { "DMS-1.50", Quirk::None } } },
+            { "dlna:X_DLNADOC", Quirk::Samsung, { { "M-DMS-1.50", Quirk::None } } },
+            { "deviceType", Quirk::None, { { "urn:schemas-upnp-org:device:MediaServer:1", Quirk::None } } },
+            { "presentationURL", Quirk::None, { { getPresentationUrl(ip, port), Quirk::None } } },
+            { "sec:ProductCap", Quirk::DCM10, {
+                                                  { "smi", Quirk::None },
+                                                  { "DCM10", Quirk::None },
+                                                  { "getMediaInfo.sec", Quirk::None },
+                                                  { "getCaptionInfo.sec", Quirk::None },
+                                              } },
+            { "sec:X_ProductCap", Quirk::DCM10, {
+                                                    { "smi", Quirk::None },
+                                                    { "DCM10", Quirk::None },
+                                                    { "getMediaInfo.sec", Quirk::None },
+                                                    { "getCaptionInfo.sec", Quirk::None },
+                                                } },
         };
         for (auto&& [tag, serviceFlags, values] : deviceStringProperties) {
-            if (!quirks || serviceFlags == QUIRK_FLAG_NONE || quirks->hasFlag(serviceFlags)) {
+            if (!quirks || serviceFlags == Quirk::None || quirks->hasFlag(serviceFlags)) {
                 std::vector<std::string> serviceValue;
                 for (auto&& [value, valueFlags] : values) {
-                    if (!quirks || valueFlags == QUIRK_FLAG_NONE || quirks->hasFlag(valueFlags)) {
+                    if (!quirks || valueFlags == Quirk::None || quirks->hasFlag(valueFlags)) {
                         serviceValue.push_back(value);
                     }
                 }
-                auto serviceEntry = device.append_child(tag.data());
+                auto serviceEntry = device.append_child(tag);
                 if (!serviceValue.empty())
                     serviceEntry.append_child(pugi::node_pcdata).set_value(fmt::format("{}", fmt::join(serviceValue, ",")).c_str());
             }

@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -49,7 +49,7 @@ void Web::AddObject::addContainer(
     const std::string& title,
     const std::string& upnp_class)
 {
-    auto cont = content->addContainer(parentID, title, upnp_class);
+    auto cont = content->addContainer(parentID, title, upnp_class, ObjectSource::User, CdsEntryType::VirtualContainer);
 
     std::string flags = param("flags");
     if (!flags.empty()) {
@@ -64,12 +64,13 @@ std::shared_ptr<CdsItem> Web::AddObject::addItem(
     const std::string& upnp_class,
     const fs::path& location)
 {
-    auto item = std::make_shared<CdsItem>();
+    auto item = std::make_shared<CdsItem>(CdsEntryType::VirtualItem);
     item->setParentID(parentID);
 
     item->setTitle(title);
-    item->setLocation(location);
+    item->setLocation(location, CdsEntryType::VirtualItem);
     item->setClass(upnp_class);
+    item->setSource(ObjectSource::User);
 
     if (isHiddenFile(item)) {
         log_debug("Hidden file '{}' cannot be added", item->getLocation().c_str());
@@ -109,6 +110,7 @@ std::shared_ptr<CdsItemExternalURL> Web::AddObject::addUrl(
     item->setTitle(title);
     item->setURL(location);
     item->setClass(upnp_class);
+    item->setSource(ObjectSource::User);
 
     std::string desc = param("description");
     if (!desc.empty()) {

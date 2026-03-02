@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -43,6 +43,7 @@
 class CdsContainer;
 class Config;
 class ConverterManager;
+enum class BoxKeys;
 
 /// @brief layout class implementation for simple virtual layout
 class BuiltinLayout : public Layout {
@@ -63,8 +64,8 @@ protected:
     int getDir(
         const std::shared_ptr<CdsObject>& obj,
         const fs::path& rootPath,
-        const std::string_view& c1,
-        const std::string_view& c2,
+        BoxKeys c1,
+        BoxKeys c2,
         const std::string& upnpClass);
     std::vector<int> addVideo(
         const std::shared_ptr<CdsObject>& obj,
@@ -91,7 +92,7 @@ protected:
 #endif
 
     std::string mapGenre(const std::string& genre);
-    std::shared_ptr<CdsContainer> containerAt(const std::string_view& boxKey) { return container.at(boxKey.data()); }
+    std::shared_ptr<CdsContainer> containerAt(BoxKeys boxKey);
 };
 
 #endif // __BUILTIN_LAYOUT_H__

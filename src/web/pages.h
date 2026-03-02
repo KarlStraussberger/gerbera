@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -338,6 +338,12 @@ public:
 
 protected:
     bool processPageAction(Json::Value& element, const std::string& action) override;
+    /// @brief Search Objects modified or created by user
+    void doBrowse(Json::Value& items);
+    /// @brief Parse JSON data to CdsObject
+    std::vector<std::pair<std::shared_ptr<CdsObject>, std::string>> doParse(const std::string& content);
+    /// @brief update database with imported content
+    void doImport(const std::vector<std::pair<std::shared_ptr<CdsObject>, std::string>>& content);
 };
 
 /// @brief Browse clients list

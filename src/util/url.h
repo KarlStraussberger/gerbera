@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -76,6 +76,9 @@ public:
     /// @param curlHandle an initialized and ready to use curl handle
     URL(std::string url, CURL* curlHandle = nullptr);
     ~URL();
+
+    URL(const URL&) = delete;
+    URL& operator=(const URL&) = delete;
 
     /// @brief downloads either the content or the headers to the buffer.
     ///

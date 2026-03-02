@@ -4,7 +4,7 @@
 
     config_generator.cc - this file is part of Gerbera.
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -43,6 +43,7 @@
 #define XML_XMLNS "http://gerbera.io/config/"
 
 using GeneratorSectionsIterator = EnumIterator<GeneratorSections, GeneratorSections::Server, GeneratorSections::All>;
+using GeneratorModulesIterator = EnumIterator<GeneratorModules, GeneratorModules::Autoscan, GeneratorModules::None>;
 
 std::shared_ptr<pugi::xml_node> ConfigGenerator::init()
 {
@@ -59,7 +60,7 @@ std::string ConfigGenerator::printSections(int section)
 
     for (auto [bit, label] : sections) {
         if (section & (1 << to_underlying(bit))) {
-            myFlags.emplace_back(label.data());
+            myFlags.emplace_back(label);
             section &= ~(1 << to_underlying(bit));
         }
     }
@@ -77,7 +78,7 @@ int ConfigGenerator::makeSections(const std::string& optValue)
     return std::accumulate(flagsVector.begin(), flagsVector.end(), 0, [](auto flg, auto&& i) { return flg | ConfigGenerator::remapGeneratorSections(trimString(i)); });
 }
 
-std::map<GeneratorSections, std::string_view> ConfigGenerator::sections = {
+std::map<GeneratorSections, std::string> ConfigGenerator::sections = {
     { GeneratorSections::Server, "Server" },
     { GeneratorSections::Ui, "Ui" },
     { GeneratorSections::ExtendedRuntime, "ExtendedRuntime" },
@@ -95,12 +96,12 @@ std::map<GeneratorSections, std::string_view> ConfigGenerator::sections = {
 int ConfigGenerator::remapGeneratorSections(const std::string& arg)
 {
     for (auto&& bit : GeneratorSectionsIterator()) {
-        if (toLower(ConfigGenerator::sections[bit].data()) == toLower(arg)) {
+        if (toLower(ConfigGenerator::sections[bit]) == toLower(arg)) {
             return 1 << to_underlying(bit);
         }
     }
 
-    if (toLower(ConfigGenerator::sections[GeneratorSections::All].data()) == toLower(arg)) {
+    if (toLower(ConfigGenerator::sections[GeneratorSections::All]) == toLower(arg)) {
         int result = 0;
         for (auto&& bit : GeneratorSectionsIterator())
             result |= 1 << to_underlying(bit);
@@ -109,9 +110,39 @@ int ConfigGenerator::remapGeneratorSections(const std::string& arg)
     return stoiString(arg, 0, 0);
 }
 
+int ConfigGenerator::makeModules(const std::string& optValue)
+{
+    std::vector<std::string> flagsVector = splitString(optValue, '|');
+    return std::accumulate(flagsVector.begin(), flagsVector.end(), 0, [](auto flg, auto&& i) { return flg | ConfigGenerator::remapGeneratorModules(trimString(i)); });
+}
+
+std::map<GeneratorModules, std::string> ConfigGenerator::modules = {
+    { GeneratorModules::Autoscan, "Autoscan" },
+    { GeneratorModules::None, "None" },
+};
+
+int ConfigGenerator::remapGeneratorModules(const std::string& arg)
+{
+    for (auto&& bit : GeneratorModulesIterator()) {
+        if (toLower(ConfigGenerator::modules[bit]) == toLower(arg)) {
+            return 1 << to_underlying(bit);
+        }
+    }
+
+    if (toLower(ConfigGenerator::modules[GeneratorModules::None]) == toLower(arg)) {
+        return 0;
+    }
+    return stoiString(arg, 0, 0);
+}
+
 bool ConfigGenerator::isGenerated(GeneratorSections section) const
 {
     return this->generateSections == 0 || (this->generateSections & (1 << to_underlying(section)));
+}
+
+bool ConfigGenerator::isGenerated(GeneratorModules module) const
+{
+    return (this->doModules & (1 << to_underlying(module)));
 }
 
 std::shared_ptr<pugi::xml_node> ConfigGenerator::getNode(const std::string& tag) const
@@ -217,7 +248,7 @@ std::shared_ptr<pugi::xml_node> ConfigGenerator::setDictionary(ConfigVal option)
         return nullptr;
 
     auto nodeKey = definition->mapConfigOption(cs->nodeOption);
-    for (auto&& [key, value] : cs->getXmlContent({})) {
+    for (auto&& [key, value] : cs->getXmlContent({}, nullptr)) {
         setValue(fmt::format("{}/{}/", cs->xpath, nodeKey), {}, "", true);
         setValue(fmt::format("{}/{}/{}", cs->xpath, nodeKey, definition->ensureAttribute(cs->keyOption)), {}, key);
         setValue(fmt::format("{}/{}/{}", cs->xpath, nodeKey, definition->ensureAttribute(cs->valOption)), {}, value);
@@ -232,7 +263,7 @@ std::shared_ptr<pugi::xml_node> ConfigGenerator::setVector(ConfigVal option)
         return nullptr;
 
     auto nodeKey = definition->mapConfigOption(cs->nodeOption);
-    for (auto&& value : cs->getXmlContent({})) {
+    for (auto&& value : cs->getXmlContent({}, nullptr)) {
         setValue(fmt::format("{}/{}/", cs->xpath, nodeKey), {}, "", true);
         for (auto&& [key, val] : value)
             setValue(fmt::format("{}/{}/attribute::{}", cs->xpath, nodeKey, key), {}, val);
@@ -250,7 +281,8 @@ std::string ConfigGenerator::generate(
     const fs::path& userHome,
     const fs::path& configDir,
     const fs::path& dataDir,
-    const fs::path& magicFile)
+    const fs::path& magicFile,
+    const fs::path& customJsFolder)
 {
     auto decl = doc.prepend_child(pugi::node_declaration);
     decl.append_attribute("version") = "1.0";
@@ -273,7 +305,7 @@ std::string ConfigGenerator::generate(
     docinfo.set_value(headInfo.c_str());
 
     generateServer(userHome, configDir, dataDir);
-    generateImport(dataDir, userHome / configDir, magicFile);
+    generateImport(dataDir, userHome / configDir, magicFile, customJsFolder);
     generateTranscoding();
 
     std::ostringstream buf;
@@ -568,7 +600,11 @@ void ConfigGenerator::generateExtendedRuntime()
     setValue(ConfigVal::SERVER_EXTOPTS_MARK_PLAYED_ITEMS_CONTENT_LIST, ConfigVal::A_SERVER_EXTOPTS_MARK_PLAYED_ITEMS_CONTENT, DEFAULT_MARK_PLAYED_CONTENT_VIDEO);
 }
 
-void ConfigGenerator::generateImportOptions(const fs::path& prefixDir, const fs::path& configDir, const fs::path& magicFile)
+void ConfigGenerator::generateImportOptions(
+    const fs::path& prefixDir,
+    const fs::path& configDir,
+    const fs::path& magicFile,
+    const fs::path& customJsFolder)
 {
     if (!isGenerated(GeneratorSections::Import))
         return;
@@ -599,7 +635,7 @@ void ConfigGenerator::generateImportOptions(const fs::path& prefixDir, const fs:
 #ifdef ONLINESERVICES
         { ConfigVal::IMPORT_SCRIPTING_IMPORT_FUNCTION_TRAILER, ConfigLevel::Base },
 #endif
-        { ConfigVal::IMPORT_SCRIPTING_CUSTOM_FOLDER, ConfigLevel::Example },
+        { ConfigVal::IMPORT_SCRIPTING_CUSTOM_FOLDER, customJsFolder.empty() ? ConfigLevel::Example : ConfigLevel::Base },
         { ConfigVal::IMPORT_SCRIPTING_PLAYLIST_LINK_OBJECTS, ConfigLevel::Example },
         { ConfigVal::IMPORT_SCRIPTING_STRUCTURED_LAYOUT_SKIPCHARS, ConfigLevel::Example },
         { ConfigVal::IMPORT_SCRIPTING_STRUCTURED_LAYOUT_DIVCHAR, ConfigLevel::Example },
@@ -609,6 +645,8 @@ void ConfigGenerator::generateImportOptions(const fs::path& prefixDir, const fs:
         { ConfigVal::IMPORT_LIBOPTS_EXIF_METADATA_TAGS_LIST, ConfigLevel::Example },
         { ConfigVal::IMPORT_LIBOPTS_EXIF_CHARSET, ConfigLevel::Example },
         { ConfigVal::IMPORT_LIBOPTS_EXIF_ENABLED, ConfigLevel::Example },
+        { ConfigVal::IMPORT_LIBOPTS_EXIF_CONTENT_LIST, ConfigLevel::Example },
+        { ConfigVal::IMPORT_LIBOPTS_EXIF_CONTENT_ENABLED, ConfigLevel::Example },
         { ConfigVal::IMPORT_LIBOPTS_EXIF_COMMENT_LIST, ConfigLevel::Example },
         { ConfigVal::IMPORT_LIBOPTS_EXIF_COMMENT_ENABLED, ConfigLevel::Example },
 #endif
@@ -617,6 +655,8 @@ void ConfigGenerator::generateImportOptions(const fs::path& prefixDir, const fs:
         { ConfigVal::IMPORT_LIBOPTS_EXIV2_METADATA_TAGS_LIST, ConfigLevel::Example },
         { ConfigVal::IMPORT_LIBOPTS_EXIV2_CHARSET, ConfigLevel::Example },
         { ConfigVal::IMPORT_LIBOPTS_EXIV2_ENABLED, ConfigLevel::Example },
+        { ConfigVal::IMPORT_LIBOPTS_EXIV2_CONTENT_LIST, ConfigLevel::Example },
+        { ConfigVal::IMPORT_LIBOPTS_EXIV2_CONTENT_ENABLED, ConfigLevel::Example },
         { ConfigVal::IMPORT_LIBOPTS_EXIV2_COMMENT_LIST, ConfigLevel::Example },
         { ConfigVal::IMPORT_LIBOPTS_EXIV2_COMMENT_ENABLED, ConfigLevel::Example },
 #endif
@@ -625,6 +665,8 @@ void ConfigGenerator::generateImportOptions(const fs::path& prefixDir, const fs:
         { ConfigVal::IMPORT_LIBOPTS_ID3_METADATA_TAGS_LIST, ConfigLevel::Example },
         { ConfigVal::IMPORT_LIBOPTS_ID3_CHARSET, ConfigLevel::Example },
         { ConfigVal::IMPORT_LIBOPTS_ID3_ENABLED, ConfigLevel::Example },
+        { ConfigVal::IMPORT_LIBOPTS_ID3_CONTENT_LIST, ConfigLevel::Example },
+        { ConfigVal::IMPORT_LIBOPTS_ID3_CONTENT_ENABLED, ConfigLevel::Example },
         { ConfigVal::IMPORT_LIBOPTS_ID3_COMMENT_LIST, ConfigLevel::Example },
         { ConfigVal::IMPORT_LIBOPTS_ID3_COMMENT_ENABLED, ConfigLevel::Example },
 #endif
@@ -633,25 +675,33 @@ void ConfigGenerator::generateImportOptions(const fs::path& prefixDir, const fs:
         { ConfigVal::IMPORT_LIBOPTS_FFMPEG_METADATA_TAGS_LIST, ConfigLevel::Example },
         { ConfigVal::IMPORT_LIBOPTS_FFMPEG_CHARSET, ConfigLevel::Example },
         { ConfigVal::IMPORT_LIBOPTS_FFMPEG_ENABLED, ConfigLevel::Example },
+        { ConfigVal::IMPORT_LIBOPTS_FFMPEG_CONTENT_LIST, ConfigLevel::Example },
+        { ConfigVal::IMPORT_LIBOPTS_FFMPEG_CONTENT_ENABLED, ConfigLevel::Example },
         { ConfigVal::IMPORT_LIBOPTS_FFMPEG_COMMENT_LIST, ConfigLevel::Example },
         { ConfigVal::IMPORT_LIBOPTS_FFMPEG_COMMENT_ENABLED, ConfigLevel::Example },
         { ConfigVal::IMPORT_LIBOPTS_FFMPEG_ARTWORK_ENABLED, ConfigLevel::Example },
+        { ConfigVal::IMPORT_LIBOPTS_FFMPEG_STREAMS_ENABLED, ConfigLevel::Example },
+        { ConfigVal::IMPORT_LIBOPTS_FFMPEG_SUBTITLE_SEEK_SIZE, ConfigLevel::Example },
 #endif
 #ifdef HAVE_MATROSKA
         { ConfigVal::IMPORT_LIBOPTS_MKV_AUXDATA_TAGS_LIST, ConfigLevel::Example },
         { ConfigVal::IMPORT_LIBOPTS_MKV_METADATA_TAGS_LIST, ConfigLevel::Example },
         { ConfigVal::IMPORT_LIBOPTS_MKV_CHARSET, ConfigLevel::Example },
         { ConfigVal::IMPORT_LIBOPTS_MKV_ENABLED, ConfigLevel::Example },
-        { ConfigVal::IMPORT_LIBOPTS_MKV_COMMENT_ENABLED, ConfigLevel::Example },
+        { ConfigVal::IMPORT_LIBOPTS_MKV_CONTENT_LIST, ConfigLevel::Example },
+        { ConfigVal::IMPORT_LIBOPTS_MKV_CONTENT_ENABLED, ConfigLevel::Example },
         { ConfigVal::IMPORT_LIBOPTS_MKV_COMMENT_LIST, ConfigLevel::Example },
+        { ConfigVal::IMPORT_LIBOPTS_MKV_COMMENT_ENABLED, ConfigLevel::Example },
 #endif
 #ifdef HAVE_WAVPACK
         { ConfigVal::IMPORT_LIBOPTS_WAVPACK_AUXDATA_TAGS_LIST, ConfigLevel::Example },
         { ConfigVal::IMPORT_LIBOPTS_WAVPACK_METADATA_TAGS_LIST, ConfigLevel::Example },
         { ConfigVal::IMPORT_LIBOPTS_WAVPACK_CHARSET, ConfigLevel::Example },
         { ConfigVal::IMPORT_LIBOPTS_WAVPACK_ENABLED, ConfigLevel::Example },
-        { ConfigVal::IMPORT_LIBOPTS_WAVPACK_COMMENT_ENABLED, ConfigLevel::Example },
+        { ConfigVal::IMPORT_LIBOPTS_WAVPACK_CONTENT_LIST, ConfigLevel::Example },
+        { ConfigVal::IMPORT_LIBOPTS_WAVPACK_CONTENT_ENABLED, ConfigLevel::Example },
         { ConfigVal::IMPORT_LIBOPTS_WAVPACK_COMMENT_LIST, ConfigLevel::Example },
+        { ConfigVal::IMPORT_LIBOPTS_WAVPACK_COMMENT_ENABLED, ConfigLevel::Example },
 #endif
         { ConfigVal::IMPORT_SCRIPTING_VIRTUAL_LAYOUT_TYPE, ConfigLevel::Base },
         { ConfigVal::IMPORT_SCRIPTING_IMPORT_GENRE_MAP, ConfigLevel::Example },
@@ -745,8 +795,9 @@ void ConfigGenerator::generateImportOptions(const fs::path& prefixDir, const fs:
         co->setDefaultValue(scriptDir);
     }
     {
-        std::string scriptDir;
-        scriptDir = configDir / DEFAULT_JS_DIR;
+        std::string scriptDir = customJsFolder;
+        if (customJsFolder.empty())
+            scriptDir = configDir / DEFAULT_JS_DIR;
         auto co = definition->findConfigSetup(ConfigVal::IMPORT_SCRIPTING_CUSTOM_FOLDER);
         co->setDefaultValue(scriptDir);
     }
@@ -758,6 +809,12 @@ void ConfigGenerator::generateImportOptions(const fs::path& prefixDir, const fs:
         co->setDefaultValue(magicFile);
     }
 #endif
+
+    if (isGenerated(GeneratorModules::Autoscan)) {
+        auto&& autoscanTag = definition->mapConfigOption(ConfigVal::IMPORT_AUTOSCAN_TIMED_LIST);
+        auto as = setValue(fmt::format("{}/", autoscanTag), {}, "", true);
+        setXmlValue(as, ConfigVal::A_LOAD_SECTION_FROM_FILE, "autoscan.xml");
+    }
 
     if (level > ConfigLevel::Base) {
         // Generate Autoscan Example
@@ -817,9 +874,13 @@ void ConfigGenerator::generateImportOptions(const fs::path& prefixDir, const fs:
     generateOptions(options);
 }
 
-void ConfigGenerator::generateImport(const fs::path& prefixDir, const fs::path& configDir, const fs::path& magicFile)
+void ConfigGenerator::generateImport(
+    const fs::path& prefixDir,
+    const fs::path& configDir,
+    const fs::path& magicFile,
+    const fs::path& customJsFolder)
 {
-    generateImportOptions(prefixDir, configDir, magicFile);
+    generateImportOptions(prefixDir, configDir, magicFile, customJsFolder);
     generateMappings();
     generateBoxlayout(ConfigVal::BOXLAYOUT_LIST);
 #ifdef ONLINE_SERVICES
@@ -876,6 +937,8 @@ void ConfigGenerator::generateBoxlayout(ConfigVal option)
             setXmlValue(box, ConfigVal::A_BOXLAYOUT_BOX_SIZE, fmt::to_string(bl.getSize()));
         if (!bl.getEnabled())
             setXmlValue(box, ConfigVal::A_BOXLAYOUT_BOX_ENABLED, fmt::to_string(bl.getEnabled()));
+        if (!bl.getSearchable())
+            setXmlValue(box, ConfigVal::A_BOXLAYOUT_BOX_ENABLED, fmt::to_string(bl.getSearchable()));
     }
 }
 

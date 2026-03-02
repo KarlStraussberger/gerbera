@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -45,6 +45,7 @@
 #include "config/setup/config_setup_boxlayout.h"
 #include "config/setup/config_setup_dictionary.h"
 #include "config/setup/config_setup_enum.h"
+#include "config/setup/config_setup_vector.h"
 #include "content/autoscan_setting.h"
 #include "content/content.h"
 #include "context.h"
@@ -193,7 +194,8 @@ void Script::init()
         duk_put_global_lstring(ctx, sym.data(), sym.size());
     }
 
-    for (auto&& [field, sym] : boxKeyNames) {
+    for (auto&& [field, bkey] : boxKeyNames) {
+        auto&& sym = BoxLayout::getBoxKey(bkey);
         duk_push_lstring(ctx, sym.data(), sym.length());
         duk_put_global_lstring(ctx, field.data(), field.length());
     }
@@ -213,6 +215,19 @@ void Script::init()
             setProperty(key.substr(5), val);
         }
         duk_put_prop_string(ctx, -2, dcs->getItemPathRoot().c_str());
+    }
+
+    for (auto&& vcs : definition->getConfigSetupList<ConfigVectorSetup>()) {
+        auto dukArray = duk_push_array(ctx);
+        auto vector = vcs->getValue()->getVectorOption(true);
+        for (duk_uarridx_t configIndex = 0; configIndex < vector.size(); configIndex++) {
+            duk_push_object(ctx);
+            for (auto&& [key, val] : vector.at(configIndex)) {
+                setProperty(key, val);
+            }
+            duk_put_prop_index(ctx, dukArray, configIndex);
+        }
+        duk_put_prop_string(ctx, -2, vcs->getItemPathRoot().c_str());
     }
 
     for (auto&& acs : definition->getConfigSetupList<ConfigArraySetup>()) {
@@ -270,6 +285,7 @@ void Script::init()
             setIntProperty("id", boxLayout->getId());
             setIntProperty(definition->removeAttribute(ConfigVal::A_BOXLAYOUT_BOX_SIZE), boxLayout->getSize());
             setBoolProperty(definition->removeAttribute(ConfigVal::A_BOXLAYOUT_BOX_ENABLED), boxLayout->getEnabled());
+            setBoolProperty(definition->removeAttribute(ConfigVal::A_BOXLAYOUT_BOX_SEARCHABLE), boxLayout->getSearchable());
             setProperty(definition->removeAttribute(ConfigVal::A_BOXLAYOUT_BOX_TITLE), boxLayout->getTitle());
             setProperty(definition->removeAttribute(ConfigVal::A_BOXLAYOUT_BOX_CLASS), boxLayout->getClass());
             setProperty(definition->removeAttribute(ConfigVal::A_BOXLAYOUT_BOX_UPNP_SHORTCUT), boxLayout->getUpnpShortcut());
@@ -534,6 +550,7 @@ void Script::setMetaData(
 
 std::shared_ptr<CdsObject> Script::createObject(const std::shared_ptr<CdsObject>& pcd)
 {
+    log_debug("creating obj");
     int objType = ScriptNamedProperty(ctx, "objectType").getIntValue(-1);
     if (objType == -1) {
         log_error("missing objectType property");
@@ -672,6 +689,7 @@ std::shared_ptr<CdsObject> Script::dukObject2cdsObject(const std::shared_ptr<Cds
             obj->setTitle(pcd->getTitle());
         }
     }
+
     // update sortKey
     {
         auto val = ScriptNamedProperty(ctx, "sortKey").getStringValue();
@@ -722,7 +740,7 @@ std::shared_ptr<CdsObject> Script::dukObject2cdsObject(const std::shared_ptr<Cds
     fs::path location = !hasCaseSensitiveNames && obj->isContainer() ? toLower(ScriptNamedProperty(ctx, "location").getStringValue()) : ScriptNamedProperty(ctx, "location").getStringValue();
     if (!location.empty()) {
         // location must not be touched by character conversion!
-        obj->setLocation(location);
+        obj->setLocation(location, obj->getEntryType());
     }
 
     // update description
@@ -783,7 +801,7 @@ std::shared_ptr<CdsObject> Script::dukObject2cdsObject(const std::shared_ptr<Cds
 
         // update location if not set in script
         if (location.empty() && pcd) {
-            obj->setLocation(pcd->getLocation());
+            obj->setLocation(pcd->getLocation(), obj->getEntryType());
         }
 
         // CdsExternalItem (like links)
@@ -874,6 +892,8 @@ void Script::cdsObject2dukObject(const std::shared_ptr<CdsObject>& obj)
     setProperty("sortKey", obj->getSortKey(), false);
     setProperty("upnpclass", obj->getClass(), false);
     setProperty("location", obj->getLocation(), false);
+    setProperty("source", CdsObject::mapSource(obj->getSource()), false);
+    setProperty("entryType", CdsObject::mapEntryType(obj->getEntryType()), false);
 
     setIntProperty("mtime", static_cast<int>(obj->getMTime().count()));
     setIntProperty("utime", static_cast<int>(obj->getUTime().count()));

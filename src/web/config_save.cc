@@ -4,7 +4,7 @@
 
     web/config_save.cc - this file is part of Gerbera.
 
-    Copyright (C) 2020-2025 Gerbera Contributors
+    Copyright (C) 2020-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -26,6 +26,7 @@
 
 #include "pages.h" // API
 
+#include "cds/cds_objects.h"
 #include "config/config.h"
 #include "config/config_definition.h"
 #include "config/config_setup.h"
@@ -173,13 +174,13 @@ bool Web::ConfigSave::processPageAction(Json::Value& element, const std::string&
                 autoscan = content->getAutoscanDirectory(targetPath);
                 targetPath = targetPath.parent_path();
             }
-            int objectID = database->findObjectIDByPath(target);
-            if (objectID > 0 && autoscan) {
-                content->rescanDirectory(autoscan, objectID, target);
+            auto object = database->findObjectByPath(targetPath, UNUSED_CLIENT_GROUP, DbFileType::Auto);
+            if (object && autoscan) {
+                content->rescanDirectory(autoscan, object->getID(), target);
                 taskEl["text"] = fmt::format("Rescanning directory {}", target);
                 log_info("Rescanning directory {}", target);
             } else {
-                log_error("No such autoscan or dir: {} ({})", target, objectID);
+                log_error("No such autoscan or dir: {}", target);
             }
         } else {
             auto autoScans = content->getAutoscanDirectories();

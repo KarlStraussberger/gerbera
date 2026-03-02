@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -39,7 +39,6 @@
 
 #include <map>
 #include <memory>
-#include <unordered_set>
 #include <vector>
 
 // forward declarations
@@ -122,7 +121,12 @@ public:
     /// @param path location of the container to handle
     /// @return objectID of the container given by path
     int ensurePathExistence(const fs::path& path) const override;
-    std::vector<int> removeObject(const std::shared_ptr<AutoscanDirectory>& adir, const std::shared_ptr<CdsObject>& obj, const fs::path& path, bool rescanResource, bool async = true, bool all = false) override;
+    std::vector<int> removeObject(
+        const std::shared_ptr<AutoscanDirectory>& adir,
+        const std::shared_ptr<CdsObject>& obj,
+        const fs::path& path, bool rescanResource,
+        bool async = true,
+        bool all = false) override;
 
     /// @brief Updates an object in the database using the given parameters.
     /// @param objectID ID of the object to update
@@ -165,13 +169,22 @@ public:
     /// @param chain list of container objects to create
     /// @param refItem object to take artwork from
     /// @return ID of the last container in the chain.
-    std::pair<int, bool> addContainerTree(const std::vector<std::shared_ptr<CdsObject>>& chain, const std::shared_ptr<CdsObject>& refItem) override;
+    std::pair<int, bool> addContainerTree(
+        const std::vector<std::shared_ptr<CdsObject>>& chain,
+        const std::shared_ptr<CdsObject>& refItem) override;
 
     /// @brief Adds a virtual container specified by parentID and title
     /// @param parentID the id of the parent.
     /// @param title the title of the container.
     /// @param upnpClass the upnp class of the container.
-    std::shared_ptr<CdsContainer> addContainer(int parentID, const std::string& title, const std::string& upnpClass) override;
+    /// @param source of the new container.
+    /// @param type entry type of the new container.
+    std::shared_ptr<CdsContainer> addContainer(
+        int parentID,
+        const std::string& title,
+        const std::string& upnpClass,
+        ObjectSource source,
+        CdsEntryType type) override;
 
     /// @brief Updates an object in the database.
     /// @param obj the object to update

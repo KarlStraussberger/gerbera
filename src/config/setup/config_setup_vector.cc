@@ -4,7 +4,7 @@
 
     config_setup_vector.cc - this file is part of Gerbera.
 
-    Copyright (C) 2022-2025 Gerbera Contributors
+    Copyright (C) 2022-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -33,14 +33,16 @@
 #include "util/logger.h"
 
 #include <numeric>
+#include <pugixml.hpp>
 
 /// @brief Creates a vector from an XML nodeset.
 bool ConfigVectorSetup::createOptionFromNode(
+    const std::shared_ptr<Config>& config,
     const pugi::xml_node& element,
     std::vector<std::vector<std::pair<std::string, std::string>>>& result)
 {
     if (element) {
-        doExtend = definition->findConfigSetup<ConfigBoolSetup>(ConfigVal::A_LIST_EXTEND)->getXmlContent(element);
+        doExtend = definition->findConfigSetup<ConfigBoolSetup>(ConfigVal::A_LIST_EXTEND)->getXmlContent(element, config);
         const auto dictNodes = element.select_nodes(definition->mapConfigOption(nodeOption));
         std::vector<std::string> attrList;
         attrList.reserve(optionList.size());
@@ -49,11 +51,17 @@ bool ConfigVectorSetup::createOptionFromNode(
         }
 
         for (auto&& it : dictNodes) {
-            const pugi::xml_node child = it.node();
+            auto child = it.node();
+            if (config) {
+                config->registerNode(child.path());
+            }
             std::vector<std::pair<std::string, std::string>> valueList;
             for (auto& attr : child.attributes()) {
                 std::string name = attr.name();
                 std::string value = attr.value();
+                if (config) {
+                    config->registerNode(fmt::format("{}/attribute::{}", child.path(), name));
+                }
                 if (!value.empty()) {
                     if (tolower) {
                         toLowerInPlace(value);
@@ -85,7 +93,7 @@ void ConfigVectorSetup::makeOption(
     if (arguments && arguments->find("tolower") != arguments->end()) {
         tolower = arguments->at("tolower") == "true";
     }
-    newOption(getXmlContent(getXmlElement(root)));
+    newOption(getXmlContent(getXmlElement(root), config));
     setOption(config);
 }
 
@@ -203,10 +211,12 @@ std::string ConfigVectorSetup::getItemPathRoot(bool prefix) const
     return fmt::format("{}/{}", xpath, definition->mapConfigOption(nodeOption));
 }
 
-std::vector<std::vector<std::pair<std::string, std::string>>> ConfigVectorSetup::getXmlContent(const pugi::xml_node& optValue)
+std::vector<std::vector<std::pair<std::string, std::string>>> ConfigVectorSetup::getXmlContent(
+    const pugi::xml_node& optValue,
+    const std::shared_ptr<Config>& config)
 {
     std::vector<std::vector<std::pair<std::string, std::string>>> result;
-    if (!createOptionFromNode(optValue, result) && required) {
+    if (!createOptionFromNode(config, optValue, result) && required) {
         throw_std_runtime_error("Init {} vector failed '{}'", xpath, optValue.name());
     }
     if (result.empty()) {

@@ -4,7 +4,7 @@
 
     config_setup_boxlayout.h - this file is part of Gerbera.
 
-    Copyright (C) 2023-2025 Gerbera Contributors
+    Copyright (C) 2023-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -39,9 +39,11 @@ protected:
     std::vector<BoxLayout> defaultEntries;
 
     /// @brief Creates an array of BoxLayout objects from a XML nodeset.
+    /// @param config manager for registration
     /// @param element starting element of the nodeset.
     /// @param result contents of config.
     bool createOptionFromNode(
+        const std::shared_ptr<Config>& config,
         const pugi::xml_node& element,
         const std::shared_ptr<BoxLayoutList>& result);
 
@@ -50,11 +52,8 @@ public:
         ConfigVal option,
         const char* xpath,
         const char* help,
-        std::vector<BoxLayout> defaultEntries)
-        : ConfigSetup(option, xpath, help)
-        , defaultEntries(std::move(defaultEntries))
-    {
-    }
+        std::vector<BoxLayout> defaultEntries);
+    ~ConfigBoxLayoutSetup() override;
 
     /// @brief Update Option from Web UI or Database
     bool updateItem(
@@ -74,8 +73,10 @@ public:
         std::string& optValue,
         const std::string& status = "") const;
 
-    // @brief make config option from xml content
-    std::shared_ptr<ConfigOption> newOption(const pugi::xml_node& optValue);
+    /// @brief make config option from xml content
+    std::shared_ptr<ConfigOption> newOption(
+        const std::shared_ptr<Config>& config,
+        const pugi::xml_node& optValue);
 
     /// @brief get default value
     const std::vector<BoxLayout>& getDefault() const { return defaultEntries; }
@@ -107,8 +108,8 @@ public:
 
     std::string getCurrentValue() const override { return {}; }
 
-    constexpr static std::string_view linkKey = "key";
-    constexpr static std::string_view linkValue = "value";
+    static const inline std::string linkKey = "key";
+    static const inline std::string linkValue = "value";
 };
 
 #endif // __CONFIG_SETUP_BOXLAYOUT_H__

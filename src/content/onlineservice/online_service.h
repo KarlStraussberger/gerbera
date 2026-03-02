@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -76,6 +76,9 @@ class OnlineService {
 public:
     explicit OnlineService(const std::shared_ptr<Content>& content);
     virtual ~OnlineService() = default;
+
+    OnlineService(const OnlineService&) = delete;
+    OnlineService& operator=(const OnlineService&) = delete;
 
     /// @brief Retrieves user specified content from the service and adds
     /// the items to the database.

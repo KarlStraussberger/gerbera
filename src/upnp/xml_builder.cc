@@ -379,8 +379,8 @@ void UpnpXMLBuilder::renderObject(
     result.append_attribute("restricted") = obj->isRestricted() ? "1" : "0";
 
     UpnpXMLBuilder::XmlStringFormat xmlFormat = {
-        quirks && quirks->needsStrictXml(),
-        quirks && quirks->needsAsciiXml(),
+        quirks && quirks->hasFlag(Quirk::StrictXML),
+        quirks && quirks->hasFlag(Quirk::AsciiXML),
         stringLimit,
     };
     const std::string title = obj->getTitle();
@@ -400,7 +400,7 @@ void UpnpXMLBuilder::renderObject(
         if (quirks) {
             quirks->restoreSamsungBookMarkedPosition(item, result, config->getLongOption(ConfigVal::CLIENTS_BOOKMARK_OFFSET));
             mvMeta = quirks->getMultiValue();
-            simpleDate = quirks->needsSimpleDate();
+            simpleDate = quirks->hasFlag(Quirk::SimpleDate);
         }
 
         auto metaGroups = obj->getMetaGroups();
@@ -535,7 +535,8 @@ static bool isPrivateAttribute(ResourceAttribute attribute)
     }
 }
 
-void UpnpXMLBuilder::renderResource(const CdsObject& object,
+void UpnpXMLBuilder::renderResource(
+    const CdsObject& object,
     const CdsResource& resource,
     pugi::xml_node& parent,
     const std::vector<std::string>& filter,
@@ -700,7 +701,8 @@ std::string UpnpXMLBuilder::renderResourceURL(
 
 /// @brief build path for first resource from item
 /// depending on the item type it returns the url to the media
-std::string UpnpXMLBuilder::getFirstResourcePath(const std::shared_ptr<CdsItem>& item) const
+std::string UpnpXMLBuilder::getFirstResourcePath(
+    const std::shared_ptr<CdsItem>& item) const
 {
     auto res = item->getResource(ResourcePurpose::Content);
     if (res)
@@ -708,7 +710,8 @@ std::string UpnpXMLBuilder::getFirstResourcePath(const std::shared_ptr<CdsItem>&
     return {};
 }
 
-std::optional<std::string> UpnpXMLBuilder::renderContainerImageURL(const std::shared_ptr<CdsContainer>& cont) const
+std::optional<std::string> UpnpXMLBuilder::renderContainerImageURL(
+    const std::shared_ptr<CdsContainer>& cont) const
 {
     auto orderedResources = getOrderedResources(*cont);
     auto resFound = std::find_if(orderedResources.begin(), orderedResources.end(), [](auto&& res) { return res->getPurpose() == ResourcePurpose::Thumbnail; });
@@ -718,7 +721,16 @@ std::optional<std::string> UpnpXMLBuilder::renderContainerImageURL(const std::sh
     return {};
 }
 
-std::optional<std::string> UpnpXMLBuilder::renderItemImageURL(const std::shared_ptr<CdsItem>& item) const
+std::optional<std::string> UpnpXMLBuilder::renderContainerZipURL(
+    const std::shared_ptr<CdsContainer>& cont) const
+{
+    auto url = mediaContentBuilder.buildUrl(virtualURL, cont->getID());
+    url.append(URLUtils::joinUrl({ URL_PARAM_ZIP_REQUEST, fmt::format("{}.zip", cont->getTitle()) }));
+    return url;
+}
+
+std::optional<std::string> UpnpXMLBuilder::renderItemImageURL(
+    const std::shared_ptr<CdsItem>& item) const
 {
     auto orderedResources = getOrderedResources(*item);
     auto resFound = std::find_if(orderedResources.begin(), orderedResources.end(), [](auto&& res) { return res->getPurpose() == ResourcePurpose::Thumbnail; });
@@ -926,12 +938,19 @@ std::pair<bool, int> UpnpXMLBuilder::insertTempTranscodingResource(
                     continue;
                 }
             }
+
             // check for client profile prop and filter if no match
             if (!filter->getSourceProfile().empty() && filter->getSourceProfile() != sourceProfile) {
                 continue;
             }
+
+            // check for no client flags and filter if no match
+            if (quirks && filter->getClientFlags() == QUIRK_FLAG_NONE && filter->matchesWithOut() && !quirks->hasFlag(~QUIRK_FLAG_NONE, true)) {
+                continue;
+            }
+
             // check for client flags and filter if no match
-            if (quirks && filter->getClientFlags() > 0 && quirks->checkFlags(filter->getClientFlags()) == 0) {
+            if (quirks && filter->getClientFlags() != QUIRK_FLAG_NONE && !quirks->hasFlag(filter->getClientFlags(), filter->matchesWithOut())) {
                 continue;
             }
 
@@ -944,10 +963,16 @@ std::pair<bool, int> UpnpXMLBuilder::insertTempTranscodingResource(
             if (!tp->isEnabled())
                 continue;
 
-            // check for client profile prop and filter if no match
-            if (quirks && tp->getClientFlags() > 0 && quirks->checkFlags(tp->getClientFlags()) == 0) {
+            // check for no client flags and filter if no match
+            if (quirks && tp->getClientFlags() == QUIRK_FLAG_NONE && tp->matchesWithOut() && !quirks->hasFlag(~QUIRK_FLAG_NONE, true)) {
                 continue;
             }
+
+            // check for client profile prop and filter if no match
+            if (quirks && tp->getClientFlags() != QUIRK_FLAG_NONE && !quirks->hasFlag(tp->getClientFlags(), tp->matchesWithOut())) {
+                continue;
+            }
+
             if (ct == CONTENT_TYPE_OGG) {
                 if ((item->getFlag(OBJECT_FLAG_OGG_THEORA) && !tp->isTheora()) || (!item->getFlag(OBJECT_FLAG_OGG_THEORA) && tp->isTheora())) {
                     continue;
@@ -1088,7 +1113,7 @@ void UpnpXMLBuilder::addResources(
         }
 
         if (purpose == ResourcePurpose::Subtitle) {
-            if (quirks && res->getHandlerType() != ContentHandler::SUBTITLE && !quirks->showInternalSubtitles()) {
+            if (quirks && res->getHandlerType() != ContentHandler::SUBTITLE && !quirks->hasFlag(Quirk::ShowInternalSubtitles)) {
                 continue;
             }
             auto captionInfo = std::map<std::string, std::string>();
@@ -1101,7 +1126,7 @@ void UpnpXMLBuilder::addResources(
             for (auto&& [from, to] : mimeMappings) {
                 replaceAllString(protocolInfo, from, to);
             }
-            if (quirks && quirks->hasFlag(QUIRK_FLAG_CAPTION_PROTOCOL))
+            if (quirks && quirks->hasFlag(Quirk::CaptionProtocol))
                 captionInfo[EnumMapper::getAttributeName(ResourceAttribute::PROTOCOLINFO)] = protocolInfo;
 
             captionInfoEx.push_back(std::move(captionInfo));
@@ -1136,12 +1161,12 @@ void UpnpXMLBuilder::addResources(
             if (!quirks->supportsResource(purpose)) {
                 continue;
             }
-            if (purpose == ResourcePurpose::Subtitle && res->getHandlerType() != ContentHandler::SUBTITLE && !quirks->showInternalSubtitles()) {
+            if (purpose == ResourcePurpose::Subtitle && res->getHandlerType() != ContentHandler::SUBTITLE && !quirks->hasFlag(Quirk::ShowInternalSubtitles)) {
                 continue;
             }
         }
         std::map<std::string, std::string> clientSpecficAttrs;
-        if (res->getHandlerType() == ContentHandler::DEFAULT && !captionInfoEx.empty() && quirks && quirks->checkFlags(QUIRK_FLAG_PV_SUBTITLES)) {
+        if (res->getHandlerType() == ContentHandler::DEFAULT && !captionInfoEx.empty() && quirks && quirks->hasFlag(Quirk::PvSubtitles)) {
             auto captionInfo = captionInfoEx[0];
             clientSpecficAttrs["pv:subtitleFileType"] = toUpper(captionInfo["sec:type"]);
             clientSpecficAttrs["pv:subtitleFileUri"] = captionInfo[""];
@@ -1205,7 +1230,7 @@ std::string UpnpXMLBuilder::buildProtocolInfo(
     // we do not support seeking at all, so 00
     // and the media is converted, so set CI to 1
     if (resource.getPurpose() == ResourcePurpose::Transcode) {
-        extend.append(fmt::format("{}={};{}={}", UPNP_DLNA_OP, UPNP_DLNA_OP_SEEK_DISABLED, UPNP_DLNA_CONVERSION_INDICATOR, quirks && quirks->needsNoConversion() ? UPNP_DLNA_NO_CONVERSION : UPNP_DLNA_CONVERSION));
+        extend.append(fmt::format("{}={};{}={}", UPNP_DLNA_OP, UPNP_DLNA_OP_SEEK_DISABLED, UPNP_DLNA_CONVERSION_INDICATOR, quirks && quirks->hasFlag(Quirk::ForceNoConversion) ? UPNP_DLNA_NO_CONVERSION : UPNP_DLNA_CONVERSION));
     } else {
         extend.append(fmt::format("{}={};{}={}", UPNP_DLNA_OP, UPNP_DLNA_OP_SEEK_RANGE, UPNP_DLNA_CONVERSION_INDICATOR, UPNP_DLNA_NO_CONVERSION));
     }

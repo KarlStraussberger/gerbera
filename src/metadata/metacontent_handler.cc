@@ -4,7 +4,7 @@
 
     metacontent_handler.cc - this file is part of Gerbera.
 
-    Copyright (C) 2020-2025 Gerbera Contributors
+    Copyright (C) 2020-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -537,7 +537,7 @@ bool ResourceHandler::fillMetadata(const std::shared_ptr<CdsObject>& obj)
                 continue;
 
             resource = std::make_shared<CdsResource>(ContentHandler::RESOURCE, ResourcePurpose::Thumbnail);
-            resource->addAttribute(ResourceAttribute::PROTOCOLINFO, renderProtocolInfo("res"));
+            resource->addAttribute(ResourceAttribute::PROTOCOLINFO, renderProtocolInfo(""));
             resource->addAttribute(ResourceAttribute::RESOURCE_FILE, mval);
             obj->addResource(resource);
             result = true;

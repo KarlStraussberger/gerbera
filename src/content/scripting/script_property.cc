@@ -4,7 +4,7 @@
 
     script_property.cc - this file is part of Gerbera.
 
-    Copyright (C) 2024-2025 Gerbera Contributors
+    Copyright (C) 2024-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -26,6 +26,7 @@
 
 #include "script_property.h" // API
 
+#include "util/logger.h"
 #include "util/tools.h"
 
 ScriptProperty::~ScriptProperty() = default;
@@ -61,10 +62,12 @@ std::vector<int> ScriptProperty::getIntArrayValue() const
 {
     std::vector<int> result;
     if (!isValid()) {
+        log_debug("call invalid");
         return result;
     }
 
     if (duk_is_null_or_undefined(ctx, index) || !duk_is_array(ctx, index)) {
+        log_debug("call no array {}");
         /* not an array */
         return result;
     }
@@ -87,6 +90,7 @@ std::vector<int> ScriptProperty::getIntArrayValue() const
         }
         duk_pop_2(ctx); /* pop_key */
     }
+    log_debug("call returned {}", fmt::join(result, ","));
     duk_pop(ctx); // duk_enum
 
     return result;

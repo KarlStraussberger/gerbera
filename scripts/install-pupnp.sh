@@ -3,7 +3,7 @@
 #
 # install-pupnp.sh - this file is part of Gerbera.
 #
-# Copyright (C) 2018-2025 Gerbera Contributors
+# Copyright (C) 2018-2026 Gerbera Contributors
 #
 # Gerbera is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2
@@ -36,7 +36,7 @@ installDeps ${main_dir} pupnp
 
 (
     cd "${src_dir}"
-    ./bootstrap
+    bash ./bootstrap
 )
 
 if [ "${UNAME}" = 'FreeBSD' ]; then

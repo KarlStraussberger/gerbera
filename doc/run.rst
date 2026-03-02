@@ -225,6 +225,9 @@ The tables will be created automatically during the first startup.
 All table names have a ``mt_`` or ``grb_`` prefix, so you can theoretically share the database with a different application.
 However, this is not recommended.
 
+Newer versions of MySQL/MariaDB connectors assume SSL/TLS encryption which might not
+be active on your system. In that case you have to set the environment variable
+``MARIADB_TLS_DISABLE_PEER_VERIFICATION=1`` to skip certificate handling.
 
 Last.FM Setup
 ~~~~~~~~~~~~~~
@@ -343,6 +346,16 @@ Config Directory
 The default configuration directory is combined out of the users home and the default that equals to ``.config/gerbera``,
 this option allows you to override the default directory naming. This is useful when you want to setup the server in a
 nonstandard location, but want that the default configuration to be written by the server.
+
+Custom Scripts Directory
+------------------------
+
+::
+
+    --scripts
+
+The javascript files shipped with gerbera should not be modified. Instead, they can be extended or overwritten in custom scripts.
+The folder for these can be either set in ``config.xml`` with :confval:`script-folder custom` or provided by the command line argument.
 
 Magic File
 ----------

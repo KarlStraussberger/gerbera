@@ -4,7 +4,7 @@
 
     inotify_manager.h - this file is part of Gerbera.
 
-    Copyright (C) 2025 Gerbera Contributors
+    Copyright (C) 2025-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -24,6 +24,8 @@
 /// @file content/inotify/inotify_manager.h
 #ifndef __INOTIFY_MANAGER_H__
 #define __INOTIFY_MANAGER_H__
+
+#ifdef HAVE_INOTIFY
 
 #include "content/inotify/inotify_types.h"
 #include "content/inotify/mt_inotify.h"
@@ -74,4 +76,5 @@ protected:
     virtual void threadProc() = 0;
 };
 
+#endif // HAVE_INOTIFY
 #endif // __INOTIFY_MANAGER_H__

@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -50,6 +50,7 @@
 #include "util/tools.h"
 
 #include <numeric>
+#include <pugixml.hpp>
 #include <sstream>
 
 #if defined(HAVE_NL_LANGINFO) && defined(HAVE_SETLOCALE)
@@ -89,6 +90,8 @@ ConfigManager::ConfigManager(
     }
 }
 
+ConfigManager::~ConfigManager() = default;
+
 std::shared_ptr<Config> ConfigManager::getSelf()
 {
     return shared_from_this();
@@ -108,20 +111,79 @@ void ConfigManager::addOption(ConfigVal option, const std::shared_ptr<ConfigOpti
     options.at(to_underlying(option)) = optionValue;
 }
 
+void ConfigManager::expandFiles(pugi::xml_node& parent)
+{
+    auto cs = definition->removeAttribute(ConfigVal::A_LOAD_SECTION_FROM_FILE);
+    std::vector<pugi::xml_node> nodesToRemove;
+    for (auto&& node : parent.children()) {
+        if (node.attribute(cs.c_str())) {
+            std::error_code ec;
+            pugi::xml_document xmlSubDoc;
+            fs::path subModuleName = this->filename.parent_path() / node.attribute(cs.c_str()).value();
+            log_info("Merging config file '{}'", subModuleName.c_str());
+            fs::directory_entry dirEnt(subModuleName, ec);
+
+            if (!isRegularFile(dirEnt, ec) && !dirEnt.is_symlink(ec)) {
+                log_warning("Configuration sub module '{}' does not exist for '{}'", subModuleName.c_str(), node.name());
+                expandFiles(node);
+            } else {
+                pugi::xml_parse_result result = xmlSubDoc.load_file(subModuleName.c_str());
+                if (result.status != pugi::xml_parse_status::status_ok) {
+                    throw ConfigParseException(result.description());
+                }
+                log_info("Parsing configuration {} ...", subModuleName.c_str());
+
+                auto subRoot = xmlSubDoc.document_element();
+                subRoot = parent.insert_copy_before(subRoot, node);
+                nodesToRemove.push_back(node);
+                expandFiles(subRoot);
+            }
+        } else if (node.type() == pugi::xml_node_type::node_element) {
+            expandFiles(node);
+        }
+    }
+    for (auto&& node : nodesToRemove) {
+        parent.remove_child(node);
+    }
+}
+
+void ConfigManager::getAllNodes(const pugi::xml_node& parent, bool getAttributes)
+{
+    for (auto&& node : parent.children()) {
+        if (node.type() == pugi::xml_node_type::node_element) {
+            if (!node.first_child() || node.first_child().type() != pugi::xml_node_type::node_element)
+                knownNodes[node.path()] = false;
+            getAllNodes(node);
+        }
+    }
+    if (getAttributes)
+        for (pugi::xml_attribute attr : parent.attributes()) {
+            knownNodes[fmt::format("{}/attribute::{}", parent.path(), attr.name())] = false;
+        }
+}
+
+void ConfigManager::registerNode(const std::string& xmlPath)
+{
+    knownNodes[xmlPath] = true;
+}
+
 void ConfigManager::load(const fs::path& userHome)
 {
     std::map<std::string, std::string> args;
     auto self = getSelf();
 
     log_info("Loading configuration from: {}", filename.string());
-    pugi::xml_parse_result result = xmlDoc->load_file(filename.c_str());
+    pugi::xml_parse_result result = xmlDoc.load_file(filename.c_str());
     if (result.status != pugi::xml_parse_status::status_ok) {
         throw ConfigParseException(result.description());
     }
 
     log_info("Parsing configuration...");
 
-    auto root = xmlDoc->document_element();
+    auto root = xmlDoc.document_element();
+
+    expandFiles(root);
+    getAllNodes(root, false);
 
     // first check if the config file itself looks ok,
     // it must have a config and a server tag
@@ -143,7 +205,7 @@ void ConfigManager::load(const fs::path& userHome)
         std::string activeHome = userHome.string();
         bool homeOverride = setOption(root, ConfigVal::SERVER_HOME_OVERRIDE)->getBoolOption();
         if (userHome.empty() || homeOverride) {
-            activeHome = co->getXmlContent(root);
+            activeHome = co->getXmlContent(root, self);
         } else {
             if (!fs::is_directory(activeHome))
                 throw_std_runtime_error("Directory '{}' does not exist", activeHome);
@@ -186,13 +248,13 @@ void ConfigManager::load(const fs::path& userHome)
             setOption(root, option);
 
         co = definition->findConfigSetup(ConfigVal::SERVER_STORAGE_MYSQL_INIT_SQL_FILE);
-        co->setDefaultValue(dataDir / "mysql.sql");
+        co->setDefaultValue(dataDir / MY_INIT_FILE);
         co->makeOption(root, self);
         co = definition->findConfigSetup(ConfigVal::SERVER_STORAGE_MYSQL_UPGRADE_FILE);
-        co->setDefaultValue(dataDir / "mysql-upgrade.xml");
+        co->setDefaultValue(dataDir / MY_UPGR_FILE);
         co->makeOption(root, self);
         co = definition->findConfigSetup(ConfigVal::SERVER_STORAGE_MYSQL_DROP_FILE);
-        co->setDefaultValue(dataDir / "mysql-drop.sql");
+        co->setDefaultValue(dataDir / MY_DROP_FILE);
         co->makeOption(root, self);
         dbDriver = DB_DRIVER_MYSQL;
     }
@@ -205,13 +267,13 @@ void ConfigManager::load(const fs::path& userHome)
             setOption(root, option);
 
         co = definition->findConfigSetup(ConfigVal::SERVER_STORAGE_PGSQL_INIT_SQL_FILE);
-        co->setDefaultValue(dataDir / "postgres.sql");
+        co->setDefaultValue(dataDir / PG_INIT_FILE);
         co->makeOption(root, self);
         co = definition->findConfigSetup(ConfigVal::SERVER_STORAGE_PGSQL_UPGRADE_FILE);
-        co->setDefaultValue(dataDir / "postgres-upgrade.xml");
+        co->setDefaultValue(dataDir / PG_UPGR_FILE);
         co->makeOption(root, self);
         co = definition->findConfigSetup(ConfigVal::SERVER_STORAGE_PGSQL_DROP_FILE);
-        co->setDefaultValue(dataDir / "postgres-drop.sql");
+        co->setDefaultValue(dataDir / PG_DROP_FILE);
         co->makeOption(root, self);
         dbDriver = DB_DRIVER_POSTGRES;
     }
@@ -223,13 +285,13 @@ void ConfigManager::load(const fs::path& userHome)
             setOption(root, option);
 
         co = definition->findConfigSetup(ConfigVal::SERVER_STORAGE_SQLITE_INIT_SQL_FILE);
-        co->setDefaultValue(dataDir / "sqlite3.sql");
+        co->setDefaultValue(dataDir / SL_INIT_FILE);
         co->makeOption(root, self);
         co = definition->findConfigSetup(ConfigVal::SERVER_STORAGE_SQLITE_UPGRADE_FILE);
-        co->setDefaultValue(dataDir / "sqlite3-upgrade.xml");
+        co->setDefaultValue(dataDir / SL_UPGR_FILE);
         co->makeOption(root, self);
         co = definition->findConfigSetup(ConfigVal::SERVER_STORAGE_SQLITE_DROP_FILE);
-        co->setDefaultValue(dataDir / "sqlite3-drop.sql");
+        co->setDefaultValue(dataDir / SL_DROP_FILE);
         co->makeOption(root, self);
         dbDriver = DB_DRIVER_SQLITE;
     }
@@ -353,17 +415,21 @@ void ConfigManager::load(const fs::path& userHome)
     log_info("Configuration load succeeded.");
 
     std::ostringstream buf;
-    xmlDoc->print(buf, "  ");
+    xmlDoc.print(buf, "  ");
     log_debug("Config file dump after loading: {}", buf.str());
 
     // now the XML is no longer needed we can destroy it
-    xmlDoc = nullptr;
+    xmlDoc.reset();
 }
 
 /// @brief Validate that correlated options have correct values
 bool ConfigManager::validate()
 {
     log_info("Validating configuration...");
+    for (auto&& [path, found] : knownNodes) {
+        if (!found)
+            log_warning("Found extra config file entry '{}'", path);
+    }
     auto self = getSelf();
 
     if (!getOption(ConfigVal::SERVER_NETWORK_INTERFACE).empty() && !getOption(ConfigVal::SERVER_IP).empty())

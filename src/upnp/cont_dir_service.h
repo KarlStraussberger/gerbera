@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -141,7 +141,7 @@ public:
     ///
     /// Looks at the incoming SubscriptionRequest and accepts the subscription
     /// if everything is ok.
-    bool processSubscriptionRequest(const SubscriptionRequest& request) override;
+    bool processSubscriptionRequest(const SubscriptionRequest& request) const override;
 
     /// @brief Sends out an event to all subscribed devices.
     /// @param containerUpdateIDsCsv Comma Separated Value list of container update ID's (as defined in the UPnP CDS specs)

@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -102,8 +102,8 @@ int BuiltinLayout::add(
 int BuiltinLayout::getDir(
     const std::shared_ptr<CdsObject>& obj,
     const fs::path& rootPath,
-    const std::string_view& c1,
-    const std::string_view& c2,
+    BoxKeys c1,
+    BoxKeys c2,
     const std::string& upnpClass)
 {
     fs::path dir;
@@ -392,7 +392,7 @@ std::vector<int> BuiltinLayout::addAudio(
     if (parent && parent->getResourceCount() > 0)
         albumContainer->setResources(parent->getResources());
     albumContainer->setRefID(obj->getID());
-    artistContainer->setSearchable(true);
+    artistContainer->setSearchable(blOption->getKey(BoxKeys::audioAllArtists)->getSearchable());
 
     if (blOption->getKey(BoxKeys::audioAllArtists)->getEnabled()) {
         std::vector<std::shared_ptr<CdsObject>> alc;
@@ -404,7 +404,7 @@ std::vector<int> BuiltinLayout::addAudio(
         result.push_back(add(obj, id));
     }
 
-    albumContainer->setSearchable(true);
+    albumContainer->setSearchable(blOption->getKey(BoxKeys::audioAllAlbums)->getSearchable());
     if (blOption->getKey(BoxKeys::audioAllAlbums)->getEnabled()) {
         std::vector<std::shared_ptr<CdsObject>> allc;
         allc.push_back(containerAt(BoxKeys::audioRoot));
@@ -417,6 +417,7 @@ std::vector<int> BuiltinLayout::addAudio(
     if (blOption->getKey(BoxKeys::audioAllGenres)->getEnabled()) {
         auto genreContainer = std::make_shared<CdsContainer>(genre, UPNP_CLASS_MUSIC_GENRE);
         genreContainer->addMetaData(MetadataFields::M_GENRE, genre);
+        genreContainer->setSearchable(blOption->getKey(BoxKeys::audioAllGenres)->getSearchable());
         std::vector<std::shared_ptr<CdsObject>> ct;
         ct.push_back(containerAt(BoxKeys::audioRoot));
         ct.push_back(containerAt(BoxKeys::audioAllGenres));
@@ -510,4 +511,9 @@ std::string BuiltinLayout::mapGenre(const std::string& genre)
         }
     }
     return genre;
+}
+
+std::shared_ptr<CdsContainer> BuiltinLayout::containerAt(BoxKeys boxKey)
+{
+    return container.at(BoxLayout::getBoxKey(boxKey));
 }

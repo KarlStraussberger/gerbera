@@ -4,7 +4,7 @@
 
     config_int_types.h - this file is part of Gerbera.
 
-    Copyright (C) 2024-2025 Gerbera Contributors
+    Copyright (C) 2024-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -26,7 +26,7 @@
 #ifndef __CONFIG_INT_TYPES_H__
 #define __CONFIG_INT_TYPES_H__
 
-#include <cinttypes>
+#include <cstdint>
 
 using IntOptionType = std::int32_t;
 using UIntOptionType = std::uint32_t;

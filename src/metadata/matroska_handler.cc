@@ -4,7 +4,7 @@
 
     matroska_handler.cc - this file is part of Gerbera.
 
-    Copyright (C) 2019-2025 Gerbera Contributors
+    Copyright (C) 2019-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -55,7 +55,7 @@
 using namespace libebml;
 using namespace libmatroska;
 
-// file managment
+/// @brief file management for matroska
 class FileIOCallback : public IOCallback {
 private:
     GrbFile file;
@@ -111,6 +111,8 @@ public:
 MatroskaHandler::MatroskaHandler(const std::shared_ptr<Context>& context)
     : MediaMetadataHandler(context,
           ConfigVal::IMPORT_LIBOPTS_MKV_ENABLED,
+          ConfigVal::IMPORT_LIBOPTS_MKV_CONTENT_ENABLED,
+          ConfigVal::IMPORT_LIBOPTS_MKV_CONTENT_LIST,
           ConfigVal::IMPORT_LIBOPTS_MKV_METADATA_TAGS_LIST,
           ConfigVal::IMPORT_LIBOPTS_MKV_AUXDATA_TAGS_LIST,
           ConfigVal::IMPORT_LIBOPTS_MKV_COMMENT_ENABLED,
@@ -130,7 +132,7 @@ bool MatroskaHandler::isSupported(
 bool MatroskaHandler::fillMetadata(const std::shared_ptr<CdsObject>& obj)
 {
     auto item = std::dynamic_pointer_cast<CdsItem>(obj);
-    if (!item || !isEnabled)
+    if (!item || !enabled)
         return false;
 
     parseMKV(item, nullptr);
@@ -333,6 +335,7 @@ void MatroskaHandler::parseHead(
     delete ebmlHead;
 }
 
+/// @brief wrapper object for matroska files
 class MkvObject {
 public:
     std::string location;
@@ -414,20 +417,22 @@ void MatroskaHandler::parseTags(
                 continue;
             for (auto&& tagEln : *tagEl) {
                 if (EbmlId(*tagEln) == EBML_ID(KaxTagTargets)) {
-                    auto tagTargets = dynamic_cast<KaxTagTargets*>(tagEln);
-                    for (auto&& tagTarget : *tagTargets) {
-                        if (EbmlId(*tagTarget) == EBML_ID(KaxTagTargetType)) {
-                            log_debug("{} target type", mkvObject.location);
-                        } else if (EbmlId(*tagTarget) == EBML_ID(KaxTagTargetTypeValue)) {
-                            log_debug("{} targeti type value", mkvObject.location);
-                        } else if (EbmlId(*tagTarget) == EBML_ID(KaxTagTrackUID)) {
-                            log_debug("{} target track", mkvObject.location);
-                        } else if (EbmlId(*tagTarget) == EBML_ID(KaxTagChapterUID)) {
-                            log_debug("{} target chapter", mkvObject.location);
-                        } else if (EbmlId(*tagTarget) == EBML_ID(KaxTagEditionUID)) {
-                            log_debug("{} target edition", mkvObject.location);
-                        } else if (EbmlId(*tagTarget) == EBML_ID(KaxTagAttachmentUID)) {
-                            log_debug("{} target attachment", mkvObject.location);
+                    if (IS_DEBUGGING) {
+                        auto tagTargets = dynamic_cast<KaxTagTargets*>(tagEln);
+                        for (auto&& tagTarget : *tagTargets) {
+                            if (EbmlId(*tagTarget) == EBML_ID(KaxTagTargetType)) {
+                                log_debug("{} target type", mkvObject.location);
+                            } else if (EbmlId(*tagTarget) == EBML_ID(KaxTagTargetTypeValue)) {
+                                log_debug("{} target type value", mkvObject.location);
+                            } else if (EbmlId(*tagTarget) == EBML_ID(KaxTagTrackUID)) {
+                                log_debug("{} target track", mkvObject.location);
+                            } else if (EbmlId(*tagTarget) == EBML_ID(KaxTagChapterUID)) {
+                                log_debug("{} target chapter", mkvObject.location);
+                            } else if (EbmlId(*tagTarget) == EBML_ID(KaxTagEditionUID)) {
+                                log_debug("{} target edition", mkvObject.location);
+                            } else if (EbmlId(*tagTarget) == EBML_ID(KaxTagAttachmentUID)) {
+                                log_debug("{} target attachment", mkvObject.location);
+                            }
                         }
                     }
                 } else if (EbmlId(*tagEln) == EBML_ID(KaxTagSimple)) {

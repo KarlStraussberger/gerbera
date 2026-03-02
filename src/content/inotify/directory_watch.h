@@ -4,7 +4,7 @@
 
     directory_watch.h - this file is part of Gerbera.
 
-    Copyright (C) 2024-2025 Gerbera Contributors
+    Copyright (C) 2024-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -62,13 +62,13 @@ public:
     void setParentWd(int parentWd) { this->parentWd = parentWd; }
 
     /// @brief set associated child watches
-    const std::unique_ptr<std::vector<std::shared_ptr<Watch>>>& getWdWatches() const { return wdWatches; }
+    std::vector<std::shared_ptr<Watch>>& getWdWatches() { return wdWatches; }
 
     /// @brief add child watch
-    void addWatch(const std::shared_ptr<Watch>& w) { wdWatches->push_back(w); }
+    void addWatch(const std::shared_ptr<Watch>& w) { wdWatches.push_back(w); }
 
 protected:
-    std::unique_ptr<std::vector<std::shared_ptr<Watch>>> wdWatches { std::make_unique<std::vector<std::shared_ptr<Watch>>>() };
+    std::vector<std::shared_ptr<Watch>> wdWatches;
     fs::path path;
     int parentWd;
     int wd;

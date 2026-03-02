@@ -4,7 +4,7 @@
 
     jquery.gerbera.items.js - this file is part of Gerbera.
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -179,7 +179,12 @@ $.widget('grb.dataitems', {
           if (!pager || pager.gridMode === 0) {
             const editIcon = $('<span></span>');
             editIcon.prop('title', 'Edit item');
-            editIcon.addClass('grb-item-edit fa fa-pencil');
+            if (!item.source || item.source === 'Import')
+              editIcon.addClass('grb-item-edit fa fa-pencil');
+            else if (item.source === 'Modified')
+              editIcon.addClass('grb-item-edit fa fa-pencil-square-o');
+            else
+              editIcon.addClass('grb-item-edit fa fa-pencil-square');
             editIcon.appendTo(buttons);
             if (onEdit) {
               editIcon.click(item, onEdit);

@@ -4,7 +4,7 @@
 
     test_upnp_xml.cc - this file is part of Gerbera.
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -30,6 +30,7 @@
 #include "config/result/transcoding.h"
 #include "context.h"
 #include "metadata/metadata_handler.h"
+#include "upnp/headers.h"
 #include "upnp/client_manager.h"
 #include "upnp/xml_builder.h"
 #include "util/grb_net.h"
@@ -48,6 +49,38 @@ class MyConfigMock final : public ConfigMock {
 public:
     MyConfigMock() { list = std::make_shared<ClientConfigList>(); }
     std::shared_ptr<ClientConfigList> getClientConfigListOption(ConfigVal option) const override { return list; }
+    std::string getOption(ConfigVal option) const override
+    {
+        switch (option) {
+#ifdef HAVE_LIBEXIF
+        case ConfigVal::IMPORT_LIBOPTS_EXIF_CHARSET:
+#endif
+#ifdef HAVE_EXIV2
+        case ConfigVal::IMPORT_LIBOPTS_EXIV2_CHARSET:
+#endif
+#ifdef HAVE_TAGLIB
+        case ConfigVal::IMPORT_LIBOPTS_ID3_CHARSET:
+#endif
+#ifdef HAVE_FFMPEG
+        case ConfigVal::IMPORT_LIBOPTS_FFMPEG_CHARSET:
+#endif
+#ifdef HAVE_MATROSKA
+        case ConfigVal::IMPORT_LIBOPTS_MKV_CHARSET:
+#endif
+#ifdef HAVE_WAVPACK
+        case ConfigVal::IMPORT_LIBOPTS_WAVPACK_CHARSET:
+#endif
+#ifdef HAVE_JS
+        case ConfigVal::IMPORT_SCRIPTING_CHARSET:
+        case ConfigVal::IMPORT_PLAYLIST_CHARSET:
+#endif
+        case ConfigVal::IMPORT_METADATA_CHARSET:
+        case ConfigVal::IMPORT_FILESYSTEM_CHARSET:
+            return DEFAULT_INTERNAL_CHARSET;
+        default:
+            return "";
+        }
+    }
     std::shared_ptr<ClientConfigList> list;
 };
 
@@ -83,7 +116,7 @@ public:
 
     std::shared_ptr<CdsObject> makeObjectWithRes()
     {
-        auto obj = std::make_shared<CdsItem>();
+        auto obj = std::make_shared<CdsItem>(CdsEntryType::File);
         obj->setID(42);
         obj->setParentID(2);
         obj->setRestricted(false);
@@ -132,7 +165,7 @@ TEST_F(UpnpXmlTest, RenderObjectContainer)
     // arrange
     pugi::xml_document didlLite;
     auto root = didlLite.append_child("DIDL-Lite");
-    auto obj = std::make_shared<CdsContainer>();
+    auto obj = std::make_shared<CdsContainer>(CdsEntryType::Directory);
     obj->setID(1);
     obj->setParentID(2);
     obj->setRestricted(false);
@@ -182,7 +215,7 @@ TEST_F(UpnpXmlTest, RenderObjectItem)
     // arrange
     pugi::xml_document didlLite;
     auto root = didlLite.append_child("DIDL-Lite");
-    auto obj = std::make_shared<CdsItem>();
+    auto obj = std::make_shared<CdsItem>(CdsEntryType::File);
     obj->setID(1);
     obj->setParentID(2);
     obj->setRestricted(false);
@@ -224,7 +257,7 @@ TEST_F(UpnpXmlTest, RenderObjectItemWithEscapes)
     // arrange
     pugi::xml_document didlLite;
     auto root = didlLite.append_child("DIDL-Lite");
-    auto obj = std::make_shared<CdsItem>();
+    auto obj = std::make_shared<CdsItem>(CdsEntryType::File);
     obj->setID(1);
     obj->setParentID(2);
     obj->setRestricted(false);
@@ -266,12 +299,39 @@ TEST_F(UpnpXmlTest, RenderObjectItemWithEscapes)
     EXPECT_STREQ(didlLiteXml.c_str(), expectedXml.str().c_str());
 }
 
+TEST_F(UpnpXmlTest, QuirksFlag)
+{
+    auto addr = std::make_shared<GrbNet>("192.168.99.100");
+    auto headers = std::make_shared<Headers>();
+    auto profile = ClientProfile();
+    profile.flags = ClientConfig::getFlag(Quirk::Transcoding1);
+    auto client = ClientObservation(addr, "", std::chrono::seconds(0), std::chrono::seconds(0), headers, &profile);
+    auto quirk = Quirks(&client);
+    EXPECT_TRUE(quirk.hasFlag(Quirk::Transcoding1));
+    EXPECT_FALSE(quirk.hasFlag(Quirk::Transcoding2));
+    profile.flags = 0;
+    EXPECT_FALSE(quirk.hasFlag(Quirk::Transcoding1));
+    EXPECT_FALSE(quirk.hasFlag(Quirk::Transcoding2));
+    profile.flags = ClientConfig::makeFlags("Transcoding1");
+    EXPECT_TRUE(quirk.hasFlag(Quirk::Transcoding1));
+    EXPECT_FALSE(quirk.hasFlag(Quirk::Transcoding2));
+    EXPECT_TRUE(quirk.hasFlag(ClientConfig::makeFlags("Transcoding1"), false));
+    EXPECT_FALSE(quirk.hasFlag(ClientConfig::makeFlags("Transcoding2"), false));
+    EXPECT_TRUE(quirk.hasFlag(ClientConfig::makeFlags("Transcoding1"), true));
+    EXPECT_FALSE(quirk.hasFlag(ClientConfig::makeFlags("Transcoding2"), true));
+    profile.flags = 0;
+    EXPECT_FALSE(quirk.hasFlag(ClientConfig::makeFlags("Transcoding1"), false));
+    EXPECT_FALSE(quirk.hasFlag(ClientConfig::makeFlags("Transcoding2"), false));
+    EXPECT_TRUE(quirk.hasFlag(ClientConfig::makeFlags("Transcoding1"), true));
+    EXPECT_TRUE(quirk.hasFlag(ClientConfig::makeFlags("Transcoding2"), true));
+}
+
 TEST_F(UpnpXmlTest, RenderObjectItemWithStrictXmlQuirks)
 {
     // arrange
     pugi::xml_document didlLite;
     auto root = didlLite.append_child("DIDL-Lite");
-    auto obj = std::make_shared<CdsItem>();
+    auto obj = std::make_shared<CdsItem>(CdsEntryType::File);
     obj->setID(1);
     obj->setParentID(2);
     obj->setRestricted(false);
@@ -384,7 +444,7 @@ TEST_F(UpnpXmlTest, RenderObjectItemWithResourcesWithQuirks)
         .WillRepeatedly(Return(std::make_shared<TranscodingProfileList>()));
 
     ClientProfile pInfo;
-    pInfo.flags = QUIRK_FLAG_CAPTION_PROTOCOL;
+    pInfo.flags = ClientConfig::getFlags({ Quirk::CaptionProtocol });
     auto addr = std::make_shared<GrbNet>("127.0.0.1");
     struct ClientObservation client(addr, "ua", std::chrono::seconds(0), std::chrono::seconds(0), nullptr, &pInfo);
     auto quirks = std::make_shared<Quirks>(&client);
@@ -423,7 +483,7 @@ TEST_F(UpnpXmlTest, CreateResponse)
 TEST_F(UpnpXmlTest, FirstResourceRendersEmptyWhenNoResource)
 {
     auto obj = std::make_shared<CdsItemExternalURL>();
-    obj->setLocation("http://localhost/external/url");
+    obj->setURL("http://localhost/external/url");
 
     auto item = std::static_pointer_cast<CdsItem>(obj);
 
@@ -435,7 +495,7 @@ TEST_F(UpnpXmlTest, FirstResourceRendersEmptyWhenNoResource)
 TEST_F(UpnpXmlTest, FirstResourceRendersPureWhenExternalUrl)
 {
     auto obj = std::make_shared<CdsItemExternalURL>();
-    obj->setLocation("http://localhost/external/url");
+    obj->setURL("http://localhost/external/url");
 
     auto resource = std::make_shared<CdsResource>(ContentHandler::DEFAULT, ResourcePurpose::Content);
     resource->addAttribute(ResourceAttribute::PROTOCOLINFO, "http-get:*:audio/mpeg:*");
@@ -454,7 +514,7 @@ TEST_F(UpnpXmlTest, FirstResourceRendersPureWhenExternalUrl)
 TEST_F(UpnpXmlTest, FirstResourceAddsLocalResourceIdToExternalUrlWhenWithProxy)
 {
     auto obj = std::make_shared<CdsItemExternalURL>();
-    obj->setLocation("http://localhost/external/url");
+    obj->setURL("http://localhost/external/url");
     obj->setID(12345);
     obj->setFlag(OBJECT_FLAG_PROXY_URL);
 
@@ -473,8 +533,8 @@ TEST_F(UpnpXmlTest, FirstResourceAddsLocalResourceIdToExternalUrlWhenWithProxy)
 
 TEST_F(UpnpXmlTest, FirstResourceAddsLocalResourceIdToItem)
 {
-    auto obj = std::make_shared<CdsItem>();
-    obj->setLocation("local/content");
+    auto obj = std::make_shared<CdsItem>(CdsEntryType::File);
+    obj->setLocation("local/content", CdsEntryType::File);
     obj->setID(12345);
 
     auto resource = std::make_shared<CdsResource>(ContentHandler::DEFAULT, ResourcePurpose::Content);

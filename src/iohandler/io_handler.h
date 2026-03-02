@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -44,7 +44,11 @@ static constexpr grb_read_t CHECK_SOCKET = -666;
 
 class IOHandler {
 public:
+    IOHandler() = default;
     virtual ~IOHandler() = default;
+
+    IOHandler(const IOHandler&) = delete;
+    IOHandler& operator=(const IOHandler&) = delete;
 
     /// @brief Opens a data for the web server.
     /// @param mode in which the data will be opened (we only support UPNP_READ)

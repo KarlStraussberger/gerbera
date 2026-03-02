@@ -3,7 +3,7 @@ Gerbera - https://gerbera.io/
 
     grb_fs.cc - this file is part of Gerbera.
 
-    Copyright (C) 2022-2025 Gerbera Contributors
+    Copyright (C) 2022-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -146,10 +146,26 @@ GrbFile::GrbFile(fs::path path)
 
 GrbFile::~GrbFile()
 {
+    close();
+}
+
+bool GrbFile::close()
+{
     if (fd && std::fclose(fd) != 0) {
         log_error("fclose {} failed", path.c_str());
+        return false;
     }
     fd = nullptr;
+    return true;
+}
+
+bool GrbFile::remove()
+{
+    if (!fd && std::remove(path.c_str()) != 0) {
+        log_error("remove {} failed", path.c_str());
+        return false;
+    }
+    return fd;
 }
 
 #ifdef __linux__

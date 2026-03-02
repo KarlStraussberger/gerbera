@@ -10,7 +10,7 @@ Gerbera - https://gerbera.io/
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -67,7 +67,7 @@ static constexpr std::array chKeys = {
     std::pair(ContentHandler::RESOURCE, "Resource"),
 };
 
-static const auto otKeys = std::map<ObjectType, std::string_view> {
+static const auto otKeys = std::map<ObjectType, std::string> {
     { ObjectType::Unknown, "Unknown" },
     { ObjectType::Folder, "Folder" },
     { ObjectType::Playlist, "Playlist" },
@@ -81,13 +81,12 @@ static const auto otKeys = std::map<ObjectType, std::string_view> {
 
 std::string EnumMapper::mapObjectType(ObjectType ot)
 {
-    return otKeys.at(ot).data();
+    return otKeys.at(ot);
 }
 
 bool EnumMapper::checkContentHandler(const std::string& contHandler)
 {
-    auto chEntry = std::find_if(chKeys.begin(), chKeys.end(), [contHandler](auto&& entry) { return contHandler == entry.second; });
-    return chEntry != chKeys.end();
+    return std::any_of(chKeys.begin(), chKeys.end(), [contHandler](auto&& entry) { return contHandler == entry.second; });
 }
 
 ContentHandler EnumMapper::remapContentHandler(const std::string& contHandler)

@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -47,6 +47,13 @@ class Content;
 class ProcListItem {
 public:
     explicit ProcListItem(std::shared_ptr<Executor> exec, bool abortOnDeath = false);
+
+    ~ProcListItem() = default;
+    ProcListItem(const ProcListItem&) = delete;
+    ProcListItem& operator=(const ProcListItem&) = delete;
+    ProcListItem(ProcListItem&&) = default;
+    ProcListItem& operator=(ProcListItem&&) = default;
+
     std::shared_ptr<Executor> getExecutor() const;
     bool abortOnDeath() const;
 
@@ -67,7 +74,7 @@ public:
     /// @param ignoreSeek don't throw exception when seek is called
     ProcessIOHandler(const std::shared_ptr<Content>& content,
         fs::path filename, std::shared_ptr<Executor> mainProc,
-        std::vector<std::unique_ptr<ProcListItem>> procList = {},
+        std::vector<ProcListItem> procList = {},
         bool ignoreSeek = false);
     ~ProcessIOHandler() override;
 
@@ -104,7 +111,7 @@ protected:
     std::shared_ptr<Content> content;
 
     /// @brief List of associated processes.
-    std::vector<std::unique_ptr<ProcListItem>> procList;
+    std::vector<ProcListItem> procList;
 
     /// @brief Main process used for reading
     std::shared_ptr<Executor> mainProc;

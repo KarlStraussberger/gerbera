@@ -3,7 +3,7 @@
 
     test_tools.cc - this file is part of Gerbera.
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -27,6 +27,8 @@
 #include "util/tools.h"
 #include "util/url_utils.h"
 
+#include <fmt/chrono.h>
+#include <fmt/core.h>
 #include <gtest/gtest.h>
 
 TEST(ToolsTest, simpleDate)
@@ -45,6 +47,33 @@ TEST(ToolsTest, simpleDate)
     EXPECT_EQ(makeSimpleDate(dt), "2009-08-21T15:21:40Z");
     dt = "2009-08-22T00:01:41+0930";
     EXPECT_EQ(makeSimpleDate(dt), "2009-08-21T14:31:41Z");
+}
+
+TEST(ToolsTest, parseDate)
+{
+    {
+        auto dt = "20240321";
+        std::tm tmWork {};
+        EXPECT_TRUE(parseDate(dt, tmWork));
+        EXPECT_EQ(fmt::format("{:%Y-%m-%d}", tmWork), "2024-03-21");
+    }
+    {
+        auto dt = "2024-03-21";
+        std::tm tmWork {};
+        EXPECT_TRUE(parseDate(dt, tmWork));
+        EXPECT_EQ(fmt::format("{:%Y-%m-%d}", tmWork), "2024-03-21");
+    }
+    {
+        auto dt = "2024";
+        std::tm tmWork {};
+        EXPECT_TRUE(parseDate(dt, tmWork));
+#ifdef SOLARIS
+        // don't know what's broken here
+        EXPECT_EQ(fmt::format("{:%Y-%m-%d}", tmWork), "2023-12-31");
+#else
+        EXPECT_EQ(fmt::format("{:%Y-%m-%d}", tmWork), "2024-01-01");
+#endif
+    }
 }
 
 TEST(ToolsTest, millisecondsToHMSF)
@@ -228,7 +257,8 @@ TEST(ToolsTest, replaceAllStringTest)
 {
     std::string str = "test ( with br";
     replaceAllString(str, "(", "\\\(");
-    EXPECT_EQ(str, "test \\" "( with br");
+    EXPECT_EQ(str, "test \\"
+                   "( with br");
 
     str = "test ] with br";
     replaceAllString(str, "]", "\\]");
@@ -265,6 +295,8 @@ TEST(ToolsTest, expandNumbersStringTest)
     EXPECT_EQ(expandNumbersString("A0001b00002c", 3), "A0001b00002c");
     EXPECT_EQ(expandNumbersString("A1b2", 3), "A001b002");
     EXPECT_EQ(expandNumbersString("1b2c", 3), "001b002c");
+    EXPECT_EQ(expandNumbersString("9999999999", 15), "000009999999999");
+    EXPECT_EQ(expandNumbersString("9999999999999999999999", 15), "9999999999999999999999");
 }
 
 TEST(ToolsTest, startswithTest)

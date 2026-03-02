@@ -3,7 +3,7 @@
 
     sl_task.h - this file is part of Gerbera.
 
-    Copyright (C) 2022-2025 Gerbera Contributors
+    Copyright (C) 2022-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -144,7 +144,7 @@ public:
     /// @param query The SQL query string
     /// @param getLastInsertId return the last created object
     /// @param warnOnly no not throw exceptions
-    SLExecTask(const std::string& query, const std::string& getLastInsertId, bool warnOnly);
+    SLExecTask(const std::string& query, std::string getLastInsertId, bool warnOnly);
     SLExecTask(const std::string& query, std::string eKey);
 
     void run(sqlite3*& db, Sqlite3Database& sl, bool throwOnError = true) override;

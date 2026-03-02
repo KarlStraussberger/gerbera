@@ -4,7 +4,7 @@
 
     thread_runner.h - this file is part of Gerbera.
 
-    Copyright (C) 2021-2025 Gerbera Contributors
+    Copyright (C) 2021-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -151,8 +151,12 @@ public:
         log_threading("ThreadRunner: Lock with tag {}", threadName);
         return AutoLockU(mutex, tag);
     }
+    /// @brief Sync with other thread
     template <class Predicate>
-    static void waitFor(const std::string_view& threadName, Predicate pred, int max_count = 10)
+    static void waitFor(
+        std::string_view threadName,
+        Predicate pred,
+        int max_count = 10)
     {
         int count = 0;
         while (!(pred()) && count < max_count) {

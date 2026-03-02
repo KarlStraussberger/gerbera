@@ -3,7 +3,7 @@ Gerbera - https://gerbera.io/
 
     grb_compile_info.cc - this file is part of Gerbera.
 
-    Copyright (C) 2024-2025 Gerbera Contributors
+    Copyright (C) 2024-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -33,6 +33,10 @@ Gerbera - https://gerbera.io/
 #include <pugixml.hpp>
 #include <spdlog/version.h>
 #include <sqlite3.h>
+
+#ifdef HAVE_ZIP
+#include <zip.h>
+#endif
 
 #ifdef HAVE_JS
 #include <duktape.h>
@@ -110,6 +114,10 @@ bool GerberaRuntime::printCompileInfo(const std::string& arg)
         { "SQLITE ", fmt::to_string(SQLITE_VERSION) },
         { "PUGIXML", fmt::to_string(PUGIXML_VERSION) },
         { "JSONCPP", JSONCPP_VERSION_STRING },
+#ifdef HAVE_ZIP
+        { "LIBZIPPP", LIBZIPPP_VERSION },
+        { "LIBZIP", zip_libzip_version() },
+#endif
 #ifdef PACKAGE_DATADIR
         { "PACKAGE_DATADIR", PACKAGE_DATADIR },
 #endif
@@ -117,6 +125,12 @@ bool GerberaRuntime::printCompileInfo(const std::string& arg)
         { "NPUPNP ", fmt::to_string(UPNP_VERSION) },
 #else
         { "PUPNP  ", fmt::to_string(UPNP_VERSION) },
+#endif
+#ifdef UPNP_MINISERVER_REUSEADDR
+        { "", "UPNP_REUSEADDR" },
+#endif
+#ifdef UPNP_ENABLE_BLOCKING_TCP_CONNECTIONS
+        { "", "UPNP_BLOCKING_TCP_CONNECTIONS" },
 #endif
 #ifdef UPNP_HAVE_TOOLS
         { "", "UPNP_HAVE_TOOLS" },
@@ -143,11 +157,10 @@ bool GerberaRuntime::printCompileInfo(const std::string& arg)
         { "HAVE_JS", fmt::to_string(DUK_VERSION) },
 #endif
 #ifdef HAVE_MYSQL
-        { "HAVE_MYSQL", MYSQL_SERVER_VERSION },
+        { "HAVE_MYSQL", fmt::format("Server {}, Client {}", MYSQL_SERVER_VERSION, mysql_get_client_info()) },
 #endif
 #ifdef HAVE_PGSQL
-        { "HAVE_PGSQL", PQXX_VERSION },
-        { "", fmt::to_string(PQlibVersion()) },
+        { "HAVE_PGSQL", fmt::format("Pqxx {}, PqLib {}", PQXX_VERSION, PQlibVersion()) },
 #endif
 #ifdef HAVE_CURL
         { "HAVE_CURL", LIBCURL_VERSION },

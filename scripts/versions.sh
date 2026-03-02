@@ -2,7 +2,7 @@
 #
 # versions.sh - this file is part of Gerbera.
 #
-# Copyright (C) 2021-2025 Gerbera Contributors
+# Copyright (C) 2021-2026 Gerbera Contributors
 #
 # Gerbera is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2
@@ -38,6 +38,9 @@ if [[ "${GERBERA_ENV-head}" == "minimum" ]]; then
     JSONCPP="1.7.4"
     CMAKE="3.31.8"
     PQXX="7.10.3"
+    LIBZIP="v1.11.4"
+    LIBZIPPP_COMMIT="8992d6002b6ae941ad1a61d5bc7a512277907be3"
+    LIBZIPPP="v7.1-1.10.1"
 
 elif [[ "${GERBERA_ENV-head}" == "default" ]]; then
 
@@ -45,7 +48,7 @@ elif [[ "${GERBERA_ENV-head}" == "default" ]]; then
     EBML="1.3.9"
     EXIV2="v0.27.7"
     EXIF="v0.6.24"
-    FFMPEGTHUMBNAILER="2.2.2"
+    FFMPEGTHUMBNAILER="2.2.3"
     FMT="11.2.0"
     GOOGLETEST="1.10.0"
     LASTFM="0.4.0"
@@ -53,32 +56,38 @@ elif [[ "${GERBERA_ENV-head}" == "default" ]]; then
     PUGIXML="1.10"
     PUPNP="1.14.17"
     NPUPNP="5.1.2"
-    SPDLOG="1.11.0"
+    SPDLOG="1.15.3"
     WAVPACK="5.4.0"
     TAGLIB="1.12"
     JSONCPP="1.9.6"
     CMAKE="3.31.8"
     PQXX="7.10.3"
+    LIBZIP="v1.11.4"
+    LIBZIPPP_COMMIT="8992d6002b6ae941ad1a61d5bc7a512277907be3"
+    LIBZIPPP="v7.1-1.10.1"
 
 else
 
     DUKTAPE="2.7.0"
     EBML="1.4.5"
-    EXIV2="v0.28.7"
+    EXIV2="v0.28.8"
     EXIF="v0.6.25"
-    FFMPEGTHUMBNAILER="2.2.3"
-    FMT="12.0.0"
+    FFMPEGTHUMBNAILER="v2.3.0"
+    FMT="12.1.0"
     GOOGLETEST="1.17.0"
     LASTFM="0.4.0"
     MATROSKA="1.7.1"
-    NPUPNP="6.2.1"
+    NPUPNP="6.2.3"
     PUGIXML="1.15"
-    PUPNP="1.14.25"
-    SPDLOG="1.16.0"
-    WAVPACK="5.8.1"
-    TAGLIB="2.1.1"
+    PUPNP="1.18.0"
+    SPDLOG="1.17.0"
+    WAVPACK="5.9.0"
+    TAGLIB="2.2"
     JSONCPP="1.9.6"
-    CMAKE="4.1.2"
+    CMAKE="4.2.3"
     PQXX="7.10.3"
+    LIBZIP="v1.11.4"
+    LIBZIPPP_COMMIT="8992d6002b6ae941ad1a61d5bc7a512277907be3"
+    LIBZIPPP="v7.1-1.10.1"
 
 fi

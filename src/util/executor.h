@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -37,8 +37,12 @@
 /// @brief wraps something executable e.g. a thread or a process
 class Executor {
 public:
+    Executor() = default;
     /// @brief destructor of the executor, has to make sure that the executor is dead
     virtual ~Executor() = default;
+
+    Executor(const Executor&) = delete;
+    Executor& operator=(const Executor&) = delete;
 
     /// @brief method to check if the executor is still running
     /// @return true if the executor is still running, false otherwise

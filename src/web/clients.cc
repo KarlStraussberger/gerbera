@@ -4,7 +4,7 @@
 
     web/clients.cc - this file is part of Gerbera.
 
-    Copyright (C) 2020-2025 Gerbera Contributors
+    Copyright (C) 2020-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -73,8 +73,8 @@ bool Web::Clients::processPageAction(Json::Value& element, const std::string& ac
         auto flags = ClientConfig::mapFlags(obj.pInfo->flags);
         replaceAllString(flags, "|", " | ");
         item["flags"] = flags;
-        item["matchType"] = ClientConfig::mapMatchType(obj.pInfo->matchType).data();
-        item["clientType"] = ClientConfig::mapClientType(obj.pInfo->type).data();
+        item["matchType"] = ClientConfig::mapMatchType(obj.pInfo->matchType);
+        item["clientType"] = ClientConfig::mapClientType(obj.pInfo->type);
         if (obj.headers) {
             Json::Value headers(Json::arrayValue);
             for (auto&& [key, value] : obj.headers->getHeaders()) {

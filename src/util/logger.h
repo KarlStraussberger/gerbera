@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -34,14 +34,17 @@
 #ifndef __LOGGER_H__
 #define __LOGGER_H__
 
-#include <array>
 #include <fmt/format.h>
 #if FMT_VERSION >= 100202
 #include <fmt/ranges.h>
 #endif
-#include <map>
 #include <spdlog/spdlog.h>
 #include <type_traits>
+
+#ifdef GRBDEBUG
+#include <array>
+#include <map>
+#endif
 
 #define log_debug SPDLOG_TRACE
 #define log_vdebug(...) (void)0
@@ -142,8 +145,14 @@ private:
 
 #undef log_debug
 #undef log_vdebug
+
+#define IS_DEBUGGING GrbLogger::Logger.isDebugging(GRB_LOG_FAC)
 #define log_debug(...) log_facility(GRB_LOG_FAC, __VA_ARGS__)
 #define log_vdebug(...) log_facility2(GRB_LOG_FAC, GrbLogFacility::verbose, __VA_ARGS__)
+
+#else
+
+#define IS_DEBUGGING false
 
 #endif
 
@@ -159,6 +168,7 @@ private:
     bool debug;
 };
 #define log_facility(fac, ...) log_debug(__VA_ARGS__)
+#define IS_DEBUGGING false
 
 #endif
 

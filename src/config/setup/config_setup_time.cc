@@ -4,7 +4,7 @@
 
     config_setup_time.cc - this file is part of Gerbera.
 
-    Copyright (C) 2023-2025 Gerbera Contributors
+    Copyright (C) 2023-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -30,9 +30,13 @@
 #include "exceptions.h"
 #include "util/grb_time.h"
 
-LongOptionType ConfigTimeSetup::getXmlContent(const pugi::xml_node& root)
+#include <pugixml.hpp>
+
+LongOptionType ConfigTimeSetup::getXmlContent(
+    const pugi::xml_node& root,
+    const std::shared_ptr<Config>& config)
 {
-    auto optValue = ConfigSetup::getXmlContent(root, true);
+    auto optValue = ConfigSetup::getXmlContent(root, config, true);
     LongOptionType result;
     if (!parseTime(result, optValue, type)) {
         throw_std_runtime_error("Invalid {} time format '{}'", xpath, optValue);
@@ -40,9 +44,12 @@ LongOptionType ConfigTimeSetup::getXmlContent(const pugi::xml_node& root)
     return result;
 }
 
-void ConfigTimeSetup::makeOption(const pugi::xml_node& root, const std::shared_ptr<Config>& config, const std::map<std::string, std::string>* arguments)
+void ConfigTimeSetup::makeOption(
+    const pugi::xml_node& root,
+    const std::shared_ptr<Config>& config,
+    const std::map<std::string, std::string>* arguments)
 {
-    auto optValue = ConfigSetup::getXmlContent(root, true);
+    auto optValue = ConfigSetup::getXmlContent(root, config, true);
     newOption(optValue);
     setOption(config);
 }

@@ -36,8 +36,8 @@ Server Attributes
          :default: unset
       .. versionadded:: 2.0.0
       .. versionchanged:: 2.6.1 new option ``inotify``
-      .. versionchanged:: HEAD new option ``thumbnailer``
-      .. versionchanged:: HEAD new option ``postgres``
+      .. versionchanged:: 3.0.0 new option ``thumbnailer``
+      .. versionchanged:: 3.0.0 new option ``postgres``
 
       Activate debugging messages only for certain subsystems.
       The following subsystems are available:
@@ -918,7 +918,7 @@ Switches default sorting by property of ``dc_title`` to ``sort_key``. The sort k
 expanding all numbers to fixed digits.
 
 .. confval:: string-limit
-   :type: :confval:`Boolean`
+   :type: :confval:`Integer`
    :required: false
    :default: ``255``
 
@@ -995,7 +995,7 @@ Drop SQL File
    :required: false
    :default: ``${datadir}/sqlite3-drop.sql``
 
-   .. versionadded:: HEAD
+   .. versionadded:: 3.0.0
    .. code-block:: xml
 
       <drop-file>/etc/gerbera/sqlite3-drop.sql</drop-file>
@@ -1244,7 +1244,7 @@ Drop SQL File
    :required: false
    :default: ``${datadir}/mysql-drop.sql``
 
-   .. versionadded:: HEAD
+   .. versionadded:: 3.0.0
    .. code-block:: xml
 
       <drop-file>/etc/gerbera/mysql-drop.sql</drop-file>
@@ -1321,7 +1321,7 @@ Postgres
    :type: :confval:`Section`
    :required: false
 
-   .. versionadded:: HEAD
+   .. versionadded:: 3.0.0
    .. code-block:: xml
 
        <postgres enabled="no"/>
@@ -1750,7 +1750,7 @@ Response properties contain the following entries.
 
     .. code-block:: xml
 
-        <upnp-namespace xmlns="gerbera" uri="https://gerbera.io"/>
+        <upnp-namespace xml-ns="gerbera" uri="https://gerbera.io"/>
         <upnp-property upnp-tag="gerbera:artist" meta-data="M_ARTIST"/>
 
     Defines an UPnP property and references the namespace for the property.
@@ -1766,13 +1766,15 @@ Property Namespace
 
 Add namespace required for properties.
 
-    .. confval:: xmlns
+    .. confval:: xml-ns
        :type: :confval:`String`
        :required: true
 
        .. code-block:: xml
 
-           xmlns="..."
+           xml-ns="..."
+
+    .. versionchanged:: HEAD renamed from ``xmlns``
 
     Key for the namespace
 

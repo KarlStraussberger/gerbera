@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -65,6 +65,10 @@ protected:
 public:
     explicit GenericTask(TaskOwner taskOwner);
     virtual ~GenericTask();
+
+    GenericTask(const GenericTask&) = delete;
+    GenericTask& operator=(const GenericTask&) = delete;
+
     virtual void run() = 0;
     void setDescription(const std::string& description) { this->description = description; }
     std::string getDescription() const { return description; }

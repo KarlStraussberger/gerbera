@@ -3,7 +3,7 @@
 
     sl_task.cc - this file is part of Gerbera.
 
-    Copyright (C) 2022-2025 Gerbera Contributors
+    Copyright (C) 2022-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -31,6 +31,8 @@
 #include "util/tools.h"
 
 #include <sqlite3.h>
+
+#include <utility>
 
 SLTask::~SLTask() = default;
 
@@ -163,10 +165,10 @@ void SLSelectTask::run(sqlite3*& db, Sqlite3Database& sl, bool throwOnError)
 
 /* SLExecTask */
 
-SLExecTask::SLExecTask(const std::string& query, const std::string& getLastInsertId, bool warnOnly)
+SLExecTask::SLExecTask(const std::string& query, std::string getLastInsertId, bool warnOnly)
     : SLTask(!warnOnly)
     , query(query.c_str())
-    , lastInsertColumn(getLastInsertId)
+    , lastInsertColumn(std::move(getLastInsertId))
 {
 }
 

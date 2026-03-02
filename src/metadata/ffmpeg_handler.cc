@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -146,11 +146,15 @@ int FfmpegLogger::logLevel = AV_LOG_INFO;
 FfmpegHandler::FfmpegHandler(const std::shared_ptr<Context>& context)
     : MediaMetadataHandler(context,
           ConfigVal::IMPORT_LIBOPTS_FFMPEG_ENABLED,
+          ConfigVal::IMPORT_LIBOPTS_FFMPEG_CONTENT_ENABLED,
+          ConfigVal::IMPORT_LIBOPTS_FFMPEG_CONTENT_LIST,
           ConfigVal::IMPORT_LIBOPTS_FFMPEG_METADATA_TAGS_LIST,
           ConfigVal::IMPORT_LIBOPTS_FFMPEG_AUXDATA_TAGS_LIST,
           ConfigVal::IMPORT_LIBOPTS_FFMPEG_COMMENT_ENABLED,
           ConfigVal::IMPORT_LIBOPTS_FFMPEG_COMMENT_LIST)
     , artWorkEnabled(config->getBoolOption(ConfigVal::IMPORT_LIBOPTS_FFMPEG_ARTWORK_ENABLED))
+    , streamsEnabled(config->getBoolOption(ConfigVal::IMPORT_LIBOPTS_FFMPEG_STREAMS_ENABLED))
+    , subtitleSeekSize(config->getUIntOption(ConfigVal::IMPORT_LIBOPTS_FFMPEG_SUBTITLE_SEEK_SIZE))
 {
 #if (LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 9, 100))
     // Register all formats and codecs
@@ -167,16 +171,41 @@ bool FfmpegHandler::isSupported(
     return mediaType == ObjectType::Audio || mediaType == ObjectType::Video;
 }
 
+static ObjectType getStreamType(const AVStream* st)
+{
+    switch (as_codecpar(st)->codec_type) {
+    case AVMEDIA_TYPE_VIDEO:
+        return ObjectType::Video;
+    case AVMEDIA_TYPE_AUDIO:
+        return ObjectType::Audio;
+    case AVMEDIA_TYPE_SUBTITLE:
+    case AVMEDIA_TYPE_DATA:
+    case AVMEDIA_TYPE_ATTACHMENT:
+    case AVMEDIA_TYPE_NB:
+        return ObjectType::Unknown;
+    case AVMEDIA_TYPE_UNKNOWN:
+    default:
+        return ObjectType::Unknown;
+    }
+}
+
 /// @brief Wrapper class to interface with FFMpeg
 class FfmpegObject {
 public:
     std::string location;
     std::shared_ptr<StringConverter> sc;
+    ObjectType objType;
+    bool streamsEnabled;
     AVFormatContext* pFormatCtx = nullptr;
 
-    FfmpegObject(const std::shared_ptr<ConverterManager>& converterManager, const std::shared_ptr<CdsItem>& item)
+    FfmpegObject(
+        const std::shared_ptr<ConverterManager>& converterManager,
+        const std::shared_ptr<CdsItem>& item,
+        bool streamsEnabled)
         : location(item->getLocation())
         , sc(converterManager->m2i(ConfigVal::IMPORT_LIBOPTS_FFMPEG_CHARSET, location))
+        , objType(item->getMediaType())
+        , streamsEnabled(streamsEnabled)
     {
         // ffmpeg library context
         pFormatCtx = avformat_alloc_context();
@@ -201,7 +230,11 @@ public:
         // Close the media file
         if (pFormatCtx)
             avformat_close_input(&pFormatCtx);
+        pFormatCtx = nullptr;
     }
+
+    FfmpegObject(const FfmpegObject&) = delete;
+    FfmpegObject& operator=(const FfmpegObject&) = delete;
 
     /// @brief check if FFMpeg information is available
     operator bool() const
@@ -209,6 +242,8 @@ public:
         if (!pFormatCtx)
             return false;
         if (!pFormatCtx->metadata) {
+            if (!streamsEnabled)
+                return false;
             for (std::size_t stream_number = 0; stream_number < pFormatCtx->nb_streams; stream_number++) {
                 if (pFormatCtx->streams[stream_number]->metadata)
                     return true;
@@ -232,9 +267,11 @@ public:
                 return val;
             }
         }
+        if (!streamsEnabled)
+            return "";
         for (std::size_t stream_number = 0; stream_number < pFormatCtx->nb_streams; stream_number++) {
             if (pFormatCtx->streams[stream_number]->metadata) {
-                auto tag = av_dict_get(pFormatCtx->metadata, desiredTag.c_str(), nullptr, AV_DICT_IGNORE_SUFFIX);
+                auto tag = av_dict_get(pFormatCtx->streams[stream_number]->metadata, desiredTag.c_str(), nullptr, AV_DICT_IGNORE_SUFFIX);
                 if (tag && tag->value && tag->value[0]) {
                     auto [val, err] = sc->convert(trimString(tag->value));
                     if (!err.empty()) {
@@ -324,12 +361,16 @@ bool FfmpegHandler::addFfmpegMetadataFields(
     AVDictionaryEntry* avEntry = nullptr;
     if (ffmpegObject.pFormatCtx->metadata)
         while ((avEntry = av_dict_get(ffmpegObject.pFormatCtx->metadata, "", avEntry, AV_DICT_IGNORE_SUFFIX))) {
-            result = getFfmpegMetadataField(item, ffmpegObject, avEntry, emptyProperties, emptySpecProperties) || result;
+            result = getFfmpegMetadataField(item, ffmpegObject, avEntry, item->getMediaType(), emptyProperties, emptySpecProperties) || result;
         }
+    if (!streamsEnabled)
+        return result;
     for (std::size_t stream_number = 0; stream_number < ffmpegObject.pFormatCtx->nb_streams; stream_number++) {
-        if (ffmpegObject.pFormatCtx->streams[stream_number]->metadata) {
-            while ((avEntry = av_dict_get(ffmpegObject.pFormatCtx->streams[stream_number]->metadata, "", avEntry, AV_DICT_IGNORE_SUFFIX))) {
-                result = getFfmpegMetadataField(item, ffmpegObject, avEntry, emptyProperties, emptySpecProperties) || result;
+        auto st = ffmpegObject.pFormatCtx->streams[stream_number];
+        if (st->metadata) {
+            auto streamType = getStreamType(st);
+            while ((avEntry = av_dict_get(st->metadata, "", avEntry, AV_DICT_IGNORE_SUFFIX))) {
+                result = getFfmpegMetadataField(item, ffmpegObject, avEntry, streamType, emptyProperties, emptySpecProperties) || result;
             }
         }
     }
@@ -340,6 +381,7 @@ bool FfmpegHandler::getFfmpegMetadataField(
     const std::shared_ptr<CdsItem>& item,
     const FfmpegObject& ffmpegObject,
     AVDictionaryEntry* avEntry,
+    ObjectType streamType,
     std::map<MetadataFields, bool>& emptyProperties,
     std::map<std::string, bool>& emptySpecProperties) const
 {
@@ -368,25 +410,14 @@ bool FfmpegHandler::getFfmpegMetadataField(
             return p.second == key && item->getMetaData(p.first).empty();
         });
     if (pIt != propertyMap.end()) {
-        log_debug("Identified default metadata '{}': {}", pIt->second, value);
+        log_debug("Identified default metadata '{}' '{}': {}", pIt->first, pIt->second, value);
         const auto field = pIt->first;
+        if (field == MetadataFields::M_TITLE && streamType != item->getMediaType())
+            return result;
         if (emptyProperties[field]) {
-            if (field == MetadataFields::M_DATE || field == MetadataFields::M_CREATION_DATE) {
+            if (field == MetadataFields::M_DATE || field == MetadataFields::M_UPNP_DATE || field == MetadataFields::M_CREATION_DATE) {
                 std::tm tmWork {};
-                if (strptime(avEntry->value, "%Y-%m-%dT%T.000000%Z", &tmWork)) {
-                    // convert creation_time to local time
-                    std::time_t utcTime = timegm(&tmWork);
-                    if (utcTime == -1) {
-                        return result;
-                    }
-                    tmWork = *std::localtime(&utcTime);
-                } else if (strptime(avEntry->value, "%Y-%m-%d", &tmWork)) {
-                    ; // use the value as is
-                } else if (strptime(avEntry->value, "%Y", &tmWork)) {
-                    // convert the value to "XXXX-01-01"
-                    tmWork.tm_mon = 0; // Month (0-11)
-                    tmWork.tm_mday = 1; // Day of the month (1-31)
-                } else
+                if (!parseDate(avEntry->value, tmWork))
                     return result;
                 auto mDate = fmt::format("{:%Y-%m-%d}", tmWork);
                 item->addMetaData(field, mDate);
@@ -402,7 +433,7 @@ bool FfmpegHandler::getFfmpegMetadataField(
         }
         result = true;
     } else {
-        log_debug("Unhandled metadata {} = '{}'", key, value);
+        log_debug("Skipped metadata {} = '{}'", key, value);
     }
     return result;
 }
@@ -427,12 +458,14 @@ static std::vector<std::uint8_t> extractArtImage(
     const FfmpegObject& ffmpegObject,
     std::size_t imageStreamIndex)
 {
-    log_debug("start");
+    log_debug("start {}", imageStreamIndex);
     if (!ffmpegObject) {
         return {};
     }
+    if (imageStreamIndex >= ffmpegObject.pFormatCtx->nb_streams) {
+        return {};
+    }
 
-    av_seek_frame(ffmpegObject.pFormatCtx, imageStreamIndex, 0, 0);
     AVStream* audioStream = nullptr;
     // Find Audio Stream with attaced picture
     for (std::size_t stream_number = 0; stream_number < ffmpegObject.pFormatCtx->nb_streams; stream_number++) {
@@ -468,7 +501,8 @@ static std::vector<std::uint8_t> extractArtImage(
 /// @brief Extract Subtitle from media file
 static std::vector<std::uint8_t> extractSubtitle(
     const FfmpegObject& ffmpegObject,
-    long long subtitleStreamIndex)
+    long long subtitleStreamIndex,
+    std::size_t maxBytes = 0)
 {
 #if (LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(60, 0, 0))
     log_debug("extractSubtitle disabled - ffmpeg seems broken");
@@ -489,7 +523,7 @@ static std::vector<std::uint8_t> extractSubtitle(
 
     std::vector<std::uint8_t> result;
     // Store subtitle packets
-    while (av_read_frame(ffmpegObject.pFormatCtx, packet) >= 0) {
+    while (av_read_frame(ffmpegObject.pFormatCtx, packet) >= 0 && (maxBytes == 0 || result.size() < maxBytes)) {
         log_vdebug("checking {} vs {}", packet->stream_index, subtitleStreamIndex);
         if (packet->stream_index == subtitleStreamIndex) {
             auto chunk = std::vector<uint8_t>(packet->data, packet->data + packet->size);
@@ -578,6 +612,22 @@ static void setBitRate(const std::shared_ptr<CdsResource>& res, int64_t value)
     }
 }
 
+void FfmpegHandler::setResourceAttributes(
+    const std::shared_ptr<CdsResource>& res,
+    AVStream* st,
+    long long stream_number)
+{
+    for (auto&& [attr, tag] : resourceMap) {
+        AVDictionaryEntry* md = (st->metadata) ? av_dict_get(st->metadata, tag, nullptr, 0) : nullptr;
+        if (md && md->value) {
+            log_debug("Resource {}: {}", tag, md->value);
+            res->addAttribute(attr, md->value);
+        } else if (stream_number > -1) {
+            res->addAttribute(attr, fmt::to_string(stream_number));
+        }
+    }
+}
+
 bool FfmpegHandler::addFfmpegResourceFields(
     const std::shared_ptr<CdsItem>& item,
     const FfmpegObject& ffmpegObject)
@@ -636,6 +686,7 @@ bool FfmpegHandler::addFfmpegResourceFields(
                 setDuration(resource2, st->duration * av_q2d(st->time_base));
             // bitrate of stream
             setBitRate(resource2, as_codecpar(st)->bit_rate);
+            setResourceAttributes(resource2, st, -1);
 
             // video codec
             auto codecId = as_codecpar(st)->codec_id;
@@ -689,7 +740,7 @@ bool FfmpegHandler::addFfmpegResourceFields(
             stResource->addAttribute(ResourceAttribute::TYPE, avcodec_get_name(codecId));
             stResource->addOption(STREAM_NUMBER_OPTION, fmt::to_string(stream_number));
 
-            auto subtitle = extractSubtitle(ffmpegObject, stream_number);
+            auto subtitle = extractSubtitle(ffmpegObject, stream_number, subtitleSeekSize);
             if (!subtitle.empty()) {
                 auto subMimetype = getContentTypeFromByteVector(subtitle);
                 log_debug("subtitle {} {}", subtitle.size(), subMimetype);
@@ -698,13 +749,7 @@ bool FfmpegHandler::addFfmpegResourceFields(
                 }
             }
 
-            AVDictionaryEntry* lang = (st->metadata) ? av_dict_get(st->metadata, "language", nullptr, 0) : nullptr;
-            if (lang && lang->value) {
-                log_debug("Subtitle Language: {}", lang->value);
-                stResource->addAttribute(ResourceAttribute::LANGUAGE, lang->value);
-            } else {
-                stResource->addAttribute(ResourceAttribute::LANGUAGE, fmt::to_string(stream_number));
-            }
+            setResourceAttributes(stResource, st, stream_number);
 
             if (as_codecpar(st)->extradata && as_codecpar(st)->extradata_size > 0) {
                 log_debug("Subtitle Size: {}", as_codecpar(st)->extradata_size);
@@ -726,6 +771,7 @@ bool FfmpegHandler::addFfmpegResourceFields(
                 resource->addOption(STREAM_NUMBER_OPTION, fmt::to_string(stream_number));
             }
 
+            setResourceAttributes(resource, st, -1);
             // audio codec
             auto codecId = as_codecpar(st)->codec_id;
             resource->addAttribute(ResourceAttribute::AUDIOCODEC, avcodec_get_name(codecId));
@@ -782,12 +828,12 @@ bool FfmpegHandler::addFfmpegResourceFields(
 bool FfmpegHandler::fillMetadata(const std::shared_ptr<CdsObject>& obj)
 {
     auto item = std::dynamic_pointer_cast<CdsItem>(obj);
-    if (!item || !isEnabled)
+    if (!item || !enabled)
         return false;
 
     log_debug("Running ffmpeg handler on {}", item->getLocation().c_str());
 
-    FfmpegObject ffmpegObject(converterManager, item);
+    FfmpegObject ffmpegObject(converterManager, item, streamsEnabled);
 
     bool result = false;
     // Add metadata for unset values
@@ -807,7 +853,7 @@ std::unique_ptr<IOHandler> FfmpegHandler::serveContent(
     const std::shared_ptr<CdsResource>& resource)
 {
     auto item = std::dynamic_pointer_cast<CdsItem>(obj);
-    if (!item || !isEnabled || !resource)
+    if (!item || !enabled || !resource)
         return nullptr;
     auto streamIndex = stoulString(resource->getOption(STREAM_NUMBER_OPTION));
     if (streamIndex < 1)
@@ -816,7 +862,7 @@ std::unique_ptr<IOHandler> FfmpegHandler::serveContent(
     log_debug("Running ffmpeg handler on {}", item->getLocation().c_str());
 
     if (resource->getPurpose() == ResourcePurpose::Thumbnail) {
-        FfmpegObject ffmpegObject(converterManager, item);
+        FfmpegObject ffmpegObject(converterManager, item, streamsEnabled);
         auto resolution = resource->getAttribute(ResourceAttribute::RESOLUTION);
         auto st = ffmpegObject.pFormatCtx->streams[streamIndex];
 
@@ -827,8 +873,9 @@ std::unique_ptr<IOHandler> FfmpegHandler::serveContent(
 
         if (as_codecpar(st)->width > 0 && as_codecpar(st)->height > 0) {
             auto res = fmt::format("{}x{}", as_codecpar(st)->width, as_codecpar(st)->height);
-            if (res != resolution)
+            if (res != resolution) {
                 log_warning("resource {} pointing to wrong index {}, resolution mismatch {} - {}", streamIndex, res, resolution);
+            }
             auto image = extractArtImage(ffmpegObject, streamIndex);
             if (!image.empty()) {
                 return std::make_unique<MemIOHandler>(image.data(), image.size());
@@ -836,7 +883,7 @@ std::unique_ptr<IOHandler> FfmpegHandler::serveContent(
         }
     }
     if (resource->getPurpose() == ResourcePurpose::Subtitle) {
-        FfmpegObject ffmpegObject(converterManager, item);
+        FfmpegObject ffmpegObject(converterManager, item, streamsEnabled);
         auto language = resource->getAttribute(ResourceAttribute::LANGUAGE);
         auto st = ffmpegObject.pFormatCtx->streams[streamIndex];
 

@@ -4,7 +4,7 @@
 #
 #  CMakeLists.txt - this file is part of Gerbera.
 #
-#  Copyright (C) 2016-2025 Gerbera Contributors
+#  Copyright (C) 2016-2026 Gerbera Contributors
 #
 #  Gerbera is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License version 2
@@ -64,6 +64,7 @@ option(WITH_MATROSKA          "Use libmatroska to extract video/mkv metadata" ON
 option(WITH_SYSTEMD           "Install Systemd unit file and notify systemd" ON)
 option(WITH_LASTFM            "Enable scrobbling to LastFM" OFF)
 option(WITH_ICU               "Enable Support for transliteration" ON)
+option(WITH_ZIP               "Enable zip for package download" ON)
 option(WITH_ONLINE_SERVICES   "Enable support for Online Services" OFF) # currently there is no online service left, this enables compiling the empty shell
 option(WITH_DEBUG             "Enables debug logging" ON)
 option(WITH_DEBUG_OPTIONS     "Enables dedicated debug messages" ON)
@@ -246,6 +247,8 @@ add_library(libgerbera STATIC
         src/database/sql_database.cc
         src/database/sql_database.h
         src/database/sql_format.h
+        src/database/sql_migration.cc
+        src/database/sql_migration.h
         src/database/sql_result.h
         src/database/sql_table.cc
         src/database/sql_table.h
@@ -397,6 +400,7 @@ add_library(libgerbera STATIC
         src/web/web_update.cc
         )
 target_include_directories(libgerbera PUBLIC "${CMAKE_SOURCE_DIR}/src")
+set_target_properties(libgerbera PROPERTIES PREFIX "") # Avoid duplicate "lib" prefix
 
 add_executable(gerbera src/main.cc)
 target_link_libraries(gerbera PRIVATE libgerbera)
@@ -473,8 +477,8 @@ else()
 endif()
 
 include(CheckPrototypeDefinition)
-check_prototype_definition(iconv "size_t iconv(iconv_t cd, const char **src, size_t *srcl, char **dst, size_t *dstl)" 0 "iconv.h" ICONV_CONST)
-if(ICONV_CONST)
+check_prototype_definition(iconv "size_t iconv(iconv_t cd, const char **src, size_t *srcl, char **dst, size_t *dstl)" 0 "iconv.h" ICONV_SRC_CONST)
+if(ICONV_SRC_CONST AND NOT CMAKE_SYSTEM_NAME MATCHES ".*(SunOS|Solaris).*")
     target_compile_definitions(libgerbera PRIVATE ICONV_CONST)
 endif()
 unset(CMAKE_REQUIRED_LIBRARIES)
@@ -603,6 +607,16 @@ target_link_libraries(libgerbera PUBLIC spdlog::spdlog)
 
 find_package(jsoncpp REQUIRED)
 target_link_libraries(libgerbera PUBLIC jsoncpp::jsoncpp)
+
+if(WITH_ZIP)
+    find_package(libzippp REQUIRED)
+    target_link_libraries(libgerbera PUBLIC zippp::zippp)
+    target_compile_definitions(libgerbera PUBLIC LIBZIPPP_VERSION="${ZIPPP_VERSION}")
+    target_compile_definitions(libgerbera PUBLIC HAVE_ZIP)
+
+    find_package(libzip REQUIRED)
+    target_link_libraries(libgerbera PUBLIC zip::zip)
+endif()
 
 find_package(pugixml REQUIRED)
 target_link_libraries(libgerbera PUBLIC pugixml::pugixml)
@@ -927,6 +941,7 @@ INSTALL(DIRECTORY ${PROJECT_SOURCE_DIR}/web
 )
 
 INSTALL(FILES
+        config/config2.xsd
         src/database/mysql/mysql.sql
         src/database/mysql/mysql-drop.sql
         src/database/mysql/mysql-upgrade.xml

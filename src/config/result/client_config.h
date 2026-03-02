@@ -4,7 +4,7 @@
 
     client_config.h - this file is part of Gerbera.
 
-    Copyright (C) 2020-2025 Gerbera Contributors
+    Copyright (C) 2020-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -31,7 +31,6 @@
 #include "upnp/clients.h"
 
 #include <map>
-#include <mutex>
 #include <utility>
 #include <vector>
 
@@ -99,7 +98,7 @@ public:
     /// @param stringLimit maximum length of name strings
     /// @param multiValue client support multi value attributes
     /// @param isAllowed client is allowed to connect to server
-    ClientConfig(int flags, std::string_view group, std::string_view ip, std::string_view userAgent,
+    ClientConfig(QuirkFlags flags, std::string_view group, std::string_view ip, std::string_view userAgent,
         const std::map<ClientMatchType, std::string>& matchValues,
         int captionInfoCount, int stringLimit, bool multiValue, bool isAllowed);
 
@@ -109,8 +108,8 @@ public:
     /// @brief get client profile associated with configuration
     const ClientProfile& getClientProfile() const { return clientProfile; }
 
-    int getFlags() const { return this->clientProfile.flags; }
-    void setFlags(int flags) { this->clientProfile.flags = flags; }
+    QuirkFlags getFlags() const { return this->clientProfile.flags; }
+    void setFlags(QuirkFlags flags) { this->clientProfile.flags = flags; }
 
     /// @brief special mappings for client
     std::map<std::string, std::string> getMimeMappings(bool edit = false) const { return this->clientProfile.mimeMappings.getDictionaryOption(edit); }
@@ -190,16 +189,20 @@ public:
     }
 
     /* helpers for clientType stuff */
-    static std::string_view mapClientType(ClientType clientType);
-    static std::string_view mapMatchType(ClientMatchType matchType);
+    static std::string mapClientType(ClientType clientType);
+    static std::string mapMatchType(ClientMatchType matchType);
     static ClientMatchType remapMatchType(const std::string& matchType);
-    static int remapFlag(const std::string& flag);
-    static int makeFlags(const std::string& optValue);
+    static QuirkFlags remapFlag(const std::string& flag);
+    static QuirkFlags makeFlags(const std::string& optValue);
 
     static std::string mapFlags(QuirkFlags flags);
+    static bool hasFlag(QuirkFlags flag, Quirk quirkFlag);
+    static QuirkFlags getFlag(Quirk quirkFlag);
+    static QuirkFlags getFlags(const std::vector<Quirk> quirkFlags);
 
 protected:
     ClientProfile clientProfile;
+    static std::vector<std::pair<std::string, Quirk>> quirkFlags;
 };
 
 #endif

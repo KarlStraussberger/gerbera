@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -68,6 +68,18 @@ class Timer;
 #define DB_DRIVER_MYSQL "mysql"
 #define DB_DRIVER_POSTGRES "postgres"
 
+#define SL_DROP_FILE "sqlite3-drop.sql"
+#define SL_UPGR_FILE "sqlite3-upgrade.xml"
+#define SL_INIT_FILE "sqlite3.sql"
+#define MY_DROP_FILE "mysql-drop.sql"
+#define MY_UPGR_FILE "mysql-upgrade.xml"
+#define MY_INIT_FILE "mysql.sql"
+#define PG_DROP_FILE "postgres-drop.sql"
+#define PG_UPGR_FILE "postgres-upgrade.xml"
+#define PG_INIT_FILE "postgres.sql"
+
+#define UNUSED_CLIENT_GROUP ""
+
 enum class DbFileType {
     Auto,
     Directory,
@@ -80,6 +92,9 @@ class Database {
 public:
     explicit Database(std::shared_ptr<Config> config);
     virtual ~Database();
+
+    Database(const Database&) = delete;
+    Database& operator=(const Database&) = delete;
 
     /// @brief run the database
     /// open connection to database
@@ -158,13 +173,6 @@ public:
         DbFileType fileType = DbFileType::Auto)
         = 0;
 
-    /// @brief checks for a given (pc directory) object, identified by the given path
-    /// from the database
-    /// @param fullpath the path of the object; object is interpreted as directory
-    /// @param fileType type of the database entry to search
-    /// @return the obejectID
-    virtual int findObjectIDByPath(const fs::path& fullpath, DbFileType fileType = DbFileType::Auto) = 0;
-
     /// @brief increments the updateIDs for the given objectIDs
     /// @param ids pointer to the array of ids
     /// @return a String for UPnP: a CSV list; for every existing object:
@@ -172,10 +180,17 @@ public:
     virtual std::string incrementUpdateIDs(const std::unordered_set<int>& ids) = 0;
 
     /* utility methods */
-    virtual std::shared_ptr<CdsObject> loadObject(int objectID) = 0;
-    virtual std::shared_ptr<CdsObject> loadObject(const std::string& group, int objectID) = 0;
-    virtual int getChildCount(int contId, bool containers = true, bool items = true, bool hideFsRoot = false) = 0;
-    virtual std::map<int, int> getChildCounts(const std::vector<int>& contId, bool containers = true, bool items = true, bool hideFsRoot = false) = 0;
+    virtual std::shared_ptr<CdsObject> loadObject(
+        int objectID,
+        const std::string& group = UNUSED_CLIENT_GROUP)
+        = 0;
+    /// @brief get number of items in container by id
+    virtual std::map<int, int> getChildCounts(
+        const std::vector<int>& contId,
+        bool containers = true,
+        bool items = true,
+        bool hideFsRoot = false)
+        = 0;
 
     struct ChangedContainers {
         // Signed because IDs start at -1.
@@ -192,15 +207,26 @@ public:
     /// @param path delete resource references to this path
     /// @param all if true and the object to be removed is a reference
     /// @return changed container ids
-    virtual std::unique_ptr<ChangedContainers> removeObject(int objectID, const fs::path& path, bool all) = 0;
+    virtual std::unique_ptr<ChangedContainers> removeObject(
+        int objectID,
+        const fs::path& path,
+        bool all)
+        = 0;
 
     /// @brief Get all objects under the given parentID.
     /// @param parentID parent container
     /// @param withoutContainer if false: all children are returned; if true: only items are returned
     /// @param ret list of matching objects
     /// @param full do full hierarchy search
+    /// @param refID check for references of ID
     /// @return number of objects found
-    virtual std::size_t getObjects(int parentID, bool withoutContainer, std::unordered_set<int>& ret, bool full) = 0;
+    virtual std::size_t getObjects(
+        int parentID,
+        bool withoutContainer,
+        std::unordered_set<int>& ret,
+        bool full,
+        int refID)
+        = 0;
     virtual std::vector<int> getRefObjects(int objectId) = 0;
     virtual std::unordered_set<int> getUnreferencedObjects() = 0;
 
@@ -267,6 +293,7 @@ public:
 
     virtual void threadCleanup() = 0;
     virtual bool threadCleanupRequired() const = 0;
+    virtual int getFirstVersion() const { return 1; };
 
 protected:
     static std::shared_ptr<Database> createInstance(const std::shared_ptr<Config>& config,

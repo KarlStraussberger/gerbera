@@ -80,6 +80,9 @@ The import settings define various options on how to aggregate the content.
             <auxdata>
               <add-data/>
             </auxdata>
+            <libcontent>
+              <add-libcontent/>
+            </libcontent>
             <metadata>
               <add-data/>
             </metadata>
@@ -88,6 +91,9 @@ The import settings define various options on how to aggregate the content.
             <auxdata>
               <add-data/>
             </auxdata>
+            <libcontent>
+              <add-libcontent/>
+            </libcontent>
             <metadata>
               <add-data/>
             </metadata>
@@ -96,6 +102,9 @@ The import settings define various options on how to aggregate the content.
             <auxdata>
               <add-data/>
             </auxdata>
+            <libcontent>
+              <add-libcontent/>
+            </libcontent>
             <metadata>
               <add-data/>
             </metadata>
@@ -104,6 +113,9 @@ The import settings define various options on how to aggregate the content.
             <auxdata>
               <add-data/>
             </auxdata>
+            <libcontent>
+              <add-libcontent/>
+            </libcontent>
             <metadata>
               <add-data/>
             </metadata>
@@ -112,6 +124,9 @@ The import settings define various options on how to aggregate the content.
             <auxdata>
               <add-data/>
             </auxdata>
+            <libcontent>
+              <add-libcontent/>
+            </libcontent>
             <metadata>
               <add-data/>
             </metadata>
@@ -120,6 +135,9 @@ The import settings define various options on how to aggregate the content.
             <auxdata>
               <add-data/>
             </auxdata>
+            <libcontent>
+              <add-libcontent/>
+            </libcontent>
             <metadata>
               <add-data/>
             </metadata>
@@ -527,7 +545,7 @@ Specifies the virtual layout to be created:
    :type: :confval:`String`
    :required: false
    :default: ``Default``
-.. versionremoved:: HEAD Migrate your configuration to use :ref:`import-function`.
+.. versionremoved:: 3.0.0 Migrate your configuration to use :ref:`import-function`.
 
 -  **Default**: ``addAudio`` is used to create the virtual layout
 -  **Structured**: ``addAudioStructured`` is used to create the virtual layout (only in combination with javascript)
@@ -536,13 +554,13 @@ Specifies the virtual layout to be created:
    :type: :confval:`String`
    :required: false
    :default: ``Default``
-.. versionremoved:: HEAD Migrate your configuration to use :ref:`import-function`.
+.. versionremoved:: 3.0.0 Migrate your configuration to use :ref:`import-function`.
 
 .. confval:: image-layout
    :type: :confval:`String`
    :required: false
    :default: ``Default``
-.. versionremoved:: HEAD Migrate your configuration to use :ref:`import-function`.
+.. versionremoved:: 3.0.0 Migrate your configuration to use :ref:`import-function`.
 
 The virtual layout can be adjusted using an import script which is defined as follows:
 
@@ -559,7 +577,7 @@ Layout Scripts (deprecated)
    :type: :confval:`Path`
    :required: false
    :default: ``${prefix}/share/gerbera/js/common.js``, `where ${prefix} is your installation prefix directory.`
-.. versionremoved:: HEAD Migrate your configuration to use :ref:`import-function`.
+.. versionremoved:: 3.0.0 Migrate your configuration to use :ref:`import-function`.
 .. versionchanged:: 2.0 Was required until 2.0, if virtual layout type is "js".
 ..
 
@@ -574,7 +592,7 @@ For more details read :ref:`scripting <scripting>`
    :type: :confval:`Path`
    :required: false
    :default: empty
-.. versionremoved:: HEAD Migrate your configuration to use :ref:`import-function`.
+.. versionremoved:: 3.0.0 Migrate your configuration to use :ref:`import-function`.
 ..
 
    .. code:: xml
@@ -589,7 +607,7 @@ For more details read :ref:`scripting <scripting>`
    :type: :confval:`Path`
    :required: false
    :default: ``${prefix}/share/gerbera/js/import.js``, `where ${prefix} is your installation prefix directory.`
-.. versionremoved:: HEAD Migrate your configuration to use :ref:`import-function`.
+.. versionremoved:: 3.0.0 Migrate your configuration to use :ref:`import-function`.
 .. versionchanged:: 2.0 Was required until 2.0, if virtual layout type is "js".
 ..
 
@@ -603,7 +621,7 @@ Points to the script invoked upon media import. For more details read about :ref
    :type: :confval:`Path`
    :required: false
    :default:  ``${prefix}/share/gerbera/js/playlists.js``, `where ${prefix} is your installation prefix directory.`
-.. versionremoved:: HEAD Migrate your configuration to use :ref:`import-function`.
+.. versionremoved:: 3.0.0 Migrate your configuration to use :ref:`import-function`.
 .. versionchanged:: 2.0 Was required until 2.0, if virtual layout type is "js".
 ..
 
@@ -633,7 +651,7 @@ however the script can be adapted to parse almost any kind of text based playlis
    :type: :confval:`Path`
    :required: false
    :default:  ``${prefix}/share/gerbera/js/metadata.js``, `where ${prefix} is your installation prefix directory.`
-.. versionremoved:: HEAD Migrate your configuration to use :ref:`import-function`.
+.. versionremoved:: 3.0.0 Migrate your configuration to use :ref:`import-function`.
 .. versionchanged:: 2.0 Was required until 2.0, if virtual layout type is "js".
 ..
 
@@ -790,6 +808,136 @@ Replace genre ``from`` by genre ``to``.
 
    Target genre value.
 
+Mapping for Camera Models
+-------------------------
+
+Camera model values as taken from exif tags are sometimes unstructured
+across manufacturers.
+The goal of model-mapping is to unify values in your media library.
+
+.. confval:: model-map
+   :type: :confval:`Section`
+   :required: false
+
+   .. versionadded:: 3.1.0
+   .. code:: xml
+
+       <model-map>
+          <model from="X6-00" to="Nokia X6"/>
+       </model-map>
+
+Define mapping of camera model value.
+
+Camera Model
+^^^^^^^^^^^^
+
+.. confval:: model-map model
+   :type: :confval:`Section`
+   :required: false
+
+   .. code:: xml
+
+      <model from="X6-00" to="Nokia X6"/>
+
+Replace model ``from`` by genre ``to``.
+
+   .. confval:: model-map model from
+      :type: :confval:`String`
+      :required: true
+   ..
+
+      .. code:: xml
+
+          from="X6-00"
+
+   Original model value. Can be a regular expression.
+
+   .. confval:: model-map model to
+      :type: :confval:`String`
+      :required: true
+   ..
+
+      .. code:: xml
+
+         to="Nokia X6"
+
+   Target model value.
+
+Rules for Headlines for Topics Section
+--------------------------------------
+
+The topics section in virtual layout combines files from images
+and videos and is populated with the respective :confval:`import-function`.
+The headlines (call topic and subtopic) in this section are derived from
+media description or special properties as implemented in the imoort function..
+
+.. confval:: headline-map
+   :type: :confval:`Section`
+   :required: false
+
+   .. versionadded:: 3.1.0
+   .. code:: xml
+
+       <headline-map>
+         <headline from="Gerbera" to="Gerbera" type="Topic"/>
+         <headline from="Gerbera[- ]*([^ ].*)" to="$1" type="SubTopic"/>
+         <headline from="^(?!.*\d{4}).*$" to="" type="Ignore"/>
+       </headline-map>
+
+Define mapping to build the headlines in topic section.
+
+Headline
+^^^^^^^^
+
+.. confval:: headline-map headline
+   :type: :confval:`Section`
+   :required: false
+
+   .. code:: xml
+
+      <headline from="Gerbera" to="Gerbera" type="Topic"/>
+
+Set headline of ``type`` to ``to`` if source property matches ``from``.
+
+   .. confval:: headline-map headline from
+      :type: :confval:`String`
+      :required: true
+   ..
+
+      .. code:: xml
+
+          from="Gerbera"
+
+   Original headline value. Can be a regular expression.
+   It is applied to the description of images.
+   The property topic and subtopic is taken from NFO files for videos.
+   If the property matches its source property
+   the :confval:`headline-map headline type` defines the topic level to be set.
+
+   .. confval:: headline-map headline to
+      :type: :confval:`String`
+      :required: true
+   ..
+
+      .. code:: xml
+
+         to="Nokia X6"
+
+   Target headline value.
+
+   .. confval:: headline-map headline type
+      :type: :confval:`Enum` (`Topic|SubTopic|Ignore`)
+      :required: false
+      :default: `SubTopic`
+   ..
+
+      .. code:: xml
+
+         type="Ignore"
+
+   Set type of topic level to be referenced.
+   `Ignore` means that the :confval:`headline-map headline to` and the whole item is ignored.
+
 .. _boxlayout:
 
 Properties of Layout Boxes
@@ -896,7 +1044,22 @@ Set properties for box.
 
          enabled="no"
 
-   Disable the respective box. Not all boxes can be disabled.
+   Disable the respective box. Disabling boxes depends on support by the respective layout.
+
+   .. confval:: box searchable
+      :type: :confval:`Boolean`
+      :required: false
+      :default: ``yes``
+   ..
+
+      .. versionadded:: 3.0.0
+      .. code:: xml
+
+         searchable="no"
+
+   Activate/deactivate box content for search. Especially relevant for artists, albums and genres.
+   To avoid duplicate results in search only one box of each type should be searchable.
+   The respective layout may overwrite the setting to enforce this rule.
 
    .. confval:: box size
       :type: :confval:`Interval`
@@ -2290,7 +2453,7 @@ a :confval:`library charset` and a :confval:`library enabled` attribute:
 
 - :confval:`id3`: Configure ``taglib`` settings used for audio file analysis.
 - :confval:`libexiv`: Configure ``libexiv`` settings used for image file analysis.
-- :confval:`evix2`: Configure ``libexiv2`` settings used for image file analysis.
+- :confval:`exiv2`: Configure ``libexiv2`` settings used for image file analysis.
 - :confval:`wavpack`: Configure ``libwavpack`` settings used for enhanced wavpack file analysis.
 - :confval:`ffmpeg`: Configure ``ffmpeg`` settings used for audio and video file analysis.
 - :confval:`mkv`: Configure ``libmatroska`` settings used for enhanced mkv file analysis.
@@ -2417,6 +2580,63 @@ If the library was able to extract the data according to the given keyword, it w
          key="upnp:Key"
 
    Sets the UPnP meta property.
+
+Filter Files by Content Type
+----------------------------
+
+.. confval:: libcontent
+   :type: :confval:`Section`
+   :required: false
+   :default: Extensible default, see :confval:`extend`
+..
+
+   .. versionadded:: HEAD
+   .. code-block:: xml
+
+      <libcontent enabled="yes">
+         <add-libcontent contenttype="png"/>
+      </libcontent>
+
+In case a content type is handled by multiple libraries, import time can increase
+significantly. To avoid parsing files twice, you can select the content types for
+handling by the library.
+
+.. confval:: libcontent enabled
+   :type: :confval:`Boolean`
+   :required: false
+   :default: ``no``
+
+   .. code:: xml
+
+      enabled="yes"
+
+Enable filtering by the content type.
+
+Add Content Type
+^^^^^^^^^^^^^^^^
+
+.. confval:: libcontent add-libcontent
+   :type: :confval:`Section`
+   :required: false
+..
+
+   .. code-block:: xml
+
+      <add-libcontent contenttype="png"/>
+      <add-libcontent contenttype="jpg"/>
+
+   .. confval:: libcontent add-libcontent contenttype
+      :type: :confval:`String`
+      :required: true
+   ..
+
+      .. code-block:: xml
+
+         contenttype="jpg"
+
+   Select the content type.
+
+If the library is not able to handle the content type the value is ignored.
 
 Fabricate Comment
 -----------------
@@ -2584,6 +2804,30 @@ documents all of the metadata keys that FFmpeg honors, depending on the format b
 Create a separate resource for the artwork if detected by ffmpeg instead of merging
 the attributes into the existing thumbnail resource (e.g. created by taglib)
 
+   .. confval:: streams-enabled
+      :type: :confval:`Boolean`
+      :required: false
+      :default: ``no``
+
+      .. versionadded:: HEAD
+      .. code-block:: xml
+
+         streams-enabled="yes"
+
+Check all streams for metadata. Expect longer import times in case of large files.
+
+   .. confval:: subtitle-seek-size
+      :type: :confval:`Integer`
+      :required: false
+      :default: ``2048``
+
+      .. versionadded:: 3.0.0
+      .. code-block:: xml
+
+         subtitle-seek-size="4096"
+
+Number of bytes to read from a subtitle stream to identify the mime-type of an internal subtitle.
+
 A sample configuration for the example described above would be:
 
 .. code-block:: xml
@@ -2604,7 +2848,7 @@ A sample configuration for the example described above would be:
 Exiv2
 ^^^^^
 
-.. confval:: evix2
+.. confval:: exiv2
    :type: :confval:`Section`
    :required: false
 ..
@@ -2628,6 +2872,7 @@ A sample configuration for the example described above would be:
            <add-data tag="Exif.Photo.DateTimeOriginal"/>
            <add-data tag="Exif.Image.Orientation"/>
            <add-data tag="Exif.Image.Rating"/>
+           <add-data tag="Iptc.Application2.Subject"/>
            <add-data tag="Xmp.xmp.Rating" />
            <add-data tag="Xmp.dc.subject"/>
        </auxdata>

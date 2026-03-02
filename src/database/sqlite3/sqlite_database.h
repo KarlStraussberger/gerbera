@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -112,7 +112,7 @@ private:
     mutable std::mutex del_mutex;
     using DelAutoLock = std::scoped_lock<std::mutex>;
     mutable std::vector<std::string> deletedEntries;
-    size_t maxDeleteCount { DELETE_CACHE_MAX_SIZE };
+    std::size_t maxDeleteCount { DELETE_CACHE_MAX_SIZE };
     std::chrono::seconds lastDelete;
 
     void threadCleanup() override { }

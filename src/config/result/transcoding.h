@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -35,7 +35,7 @@
 #ifndef __TRANSCODING_H__
 #define __TRANSCODING_H__
 
-#include "cds/cds_resource.h"
+#include "cds/cds_enums.h"
 #include "common.h"
 #include "metadata/metadata_enums.h"
 #include "upnp/quirks.h"
@@ -80,8 +80,13 @@ class TranscodingProfile {
 public:
     TranscodingProfile(bool enabled, TranscodingType trType, std::string name);
 
+    /// @brief Client Flags required to match
     QuirkFlags getClientFlags() const { return clientFlags; }
     void setClientFlags(QuirkFlags clientFlags) { this->clientFlags = clientFlags; }
+
+    /// @brief Clienta without flags match
+    bool matchesWithOut() const { return matchWithOut; }
+    void setMatchWithOut(bool matchWithOut) { this->matchWithOut = matchWithOut; }
 
     /// @brief returns the transcoding type.
     TranscodingType getType() const { return trType; }
@@ -236,6 +241,7 @@ protected:
     std::vector<std::string> fourccList;
     AviFourccListmode fourccMode { AviFourccListmode::None };
     QuirkFlags clientFlags { 0 };
+    bool matchWithOut;
     std::string dlnaProf;
     std::vector<TranscodingMimeProperty> mimeProperties;
 };
@@ -260,6 +266,10 @@ public:
     QuirkFlags getClientFlags() const { return clientFlags; }
     void setClientFlags(QuirkFlags clientFlags) { this->clientFlags = clientFlags; }
 
+    /// @brief Clienta without flags match
+    bool matchesWithOut() const { return matchWithOut; }
+    void setMatchWithOut(bool matchWithOut) { this->matchWithOut = matchWithOut; }
+
     /// @brief source dlna profile
     std::string getSourceProfile() const { return sourceProf; }
     void setSourceProfile(const std::string& dlna) { this->sourceProf = dlna; }
@@ -273,6 +283,7 @@ protected:
     std::string transcoder;
     std::string sourceProf;
     QuirkFlags clientFlags { 0 };
+    bool matchWithOut;
     std::vector<std::string> noTranscodingMimeTypes;
     std::shared_ptr<TranscodingProfile> transcodingProfile;
 };

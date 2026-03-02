@@ -2,7 +2,7 @@
 
 # Gerbera - UPnP Media Server
 
-[![Current Release](https://img.shields.io/github/release/gerbera/gerbera.svg?style=for-the-badge)](https://github.com/gerbera/gerbera/releases/latest) [![Build Status](https://img.shields.io/github/actions/workflow/status/gerbera/gerbera/ci.yml?style=for-the-badge&branch=master)](https://github.com/gerbera/gerbera/actions?query=workflow%3A%22CI+validation%22+branch%3Amaster) [![Docker Version](https://img.shields.io/docker/v/gerbera/gerbera?color=teal&label=docker&logoColor=white&sort=semver&style=for-the-badge)](https://hub.docker.com/r/gerbera/gerbera/tags?name=2.) [![Documentation Status](https://img.shields.io/readthedocs/gerbera?style=for-the-badge)](http://docs.gerbera.io/en/stable/?badge=stable) [![IRC](https://img.shields.io/badge/IRC-on%20freenode-orange.svg?style=for-the-badge)](https://webchat.freenode.net/?channels=#gerbera)
+[![Current Release](https://img.shields.io/github/release/gerbera/gerbera.svg?style=for-the-badge)](https://github.com/gerbera/gerbera/releases/latest) [![Build Status](https://img.shields.io/github/actions/workflow/status/gerbera/gerbera/ci.yml?style=for-the-badge&branch=master)](https://github.com/gerbera/gerbera/actions?query=workflow%3A%22CI+validation%22+branch%3Amaster) [![Docker Version](https://img.shields.io/docker/v/gerbera/gerbera?color=teal&label=docker&logoColor=white&sort=semver&style=for-the-badge)](https://hub.docker.com/r/gerbera/gerbera/tags?name=3.) [![Documentation Status](https://img.shields.io/readthedocs/gerbera?style=for-the-badge)](http://docs.gerbera.io/en/stable/?badge=stable) [![IRC](https://img.shields.io/badge/IRC-on%20freenode-orange.svg?style=for-the-badge)](https://webchat.freenode.net/?channels=#gerbera)
 
 [![Packaging status](https://repology.org/badge/tiny-repos/gerbera.svg?header=PACKAGES&style=for-the-badge)](https://repology.org/metapackage/gerbera/versions)
 
@@ -29,8 +29,12 @@ Connecting Gerbera to your network via the "macvlan" driver should work, but rem
 able to access the container from the docker host with this method by default.
 
 # Transcoding Tools
-Transcoding tools are made available in a separate image with the `-transcoding` suffix.
-e.g. `gerbera/gerbera:2.6.1-transcoding`. Includes tools such as ffmpeg and vlc.
+Transcoding tools are made available in a separate image with the `-transcoding` suffix,
+e.g. `gerbera/gerbera:3.1.1-transcoding`. It includes tools such as ffmpeg and vlc.
+
+# Debug build
+A full debug build is available as separate image with the `-debug` suffix,
+e.g. `gerbera/gerbera:3.1.1-debug`. It is building most libraries and tools based on the latest supported versions.
 
 # Examples
 
@@ -40,14 +44,14 @@ $ docker run \
     --name some-gerbera \
     --network=host \
     -v /some/files:/mnt/content:ro \
-     gerbera/gerbera:2.6.1
+     gerbera/gerbera:3.1.1
 ```
 
 or for those that prefer docker-compose:
 
 ```console
 ---
-version: "2.6.1"
+version: "3.1.1"
 services:
   gerbera:
     image: gerbera/gerbera
@@ -76,8 +80,19 @@ $ docker run \
     --network=host \
     -v /some/files:/mnt/content:ro \
     -v /some/path/config.xml:/var/run/gerbera/config.xml \
-     gerbera/gerbera:2.6.1
+     gerbera/gerbera:3.1.1
 ```
+
+## Keep config, database and runtime files outside
+```console
+$ docker run \
+    --name another-gerbera \
+    --network=host \
+    -v /some/files:/mnt/content:ro \
+    -v /some/path:/var/run/gerbera \
+     gerbera/gerbera:3.1.1
+```
+Make sure that the container user has write access the the config path.
 
 ## Overwrite default ports
 
@@ -89,12 +104,12 @@ $ docker run \
     --network=host \
     --expose <your-port>:<your-port> \
     -v /some/files:/mnt/content:ro \
-     gerbera/gerbera:2.6.1 gerbera --port <your-port> --config /var/run/gerbera/config.xml
+     gerbera/gerbera:3.1.1 gerbera --port <your-port> --config /var/run/gerbera/config.xml
 ```
 
 ## Overwrite default user and group id
 
-In cases (e.g. running multiple gerbera containers with different versions) you can override the exported ports
+In cases you want to map the gerbera you to a local user id you can set the environment variables `UID` and `GID`
 
 ```console
 $ docker run \
@@ -103,7 +118,21 @@ $ docker run \
     --env UID=<newuid> \
     --env GID=<newgid> \
     -v /some/files:/mnt/content:ro \
-     gerbera/gerbera:2.6.1 gerbera --config /var/run/gerbera/config.xml
+     gerbera/gerbera:3.1.1 gerbera --config /var/run/gerbera/config.xml
+```
+
+## Avoid certificate check with MySQL/MariaDB
+
+MariaDB connector assumes SSL/TLS encryption which might not be active on your database. To skip certificate check,
+you have to set the environment variable `MARIADB_TLS_DISABLE_PEER_VERIFICATION`.
+
+```console
+$ docker run \
+    --name another-gerbera \
+    --network=host \
+    --env MARIADB_TLS_DISABLE_PEER_VERIFICATION=1 \
+    -v /some/files:/mnt/content:ro \
+     gerbera/gerbera:3.1.1 gerbera --config /var/run/gerbera/config.xml
 ```
 
 # Build Variables

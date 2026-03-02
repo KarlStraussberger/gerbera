@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -78,6 +78,14 @@ public:
     off_t tell() override;
 
     /// @brief Close a previously opened file.
+    void close() override;
+};
+
+/// @brief Allows the web server to read from a temporary zip file.
+class ZipIOHandler : public FileIOHandler {
+    using FileIOHandler::FileIOHandler;
+
+    /// @brief Close a previously opened file and delete it.
     void close() override;
 };
 

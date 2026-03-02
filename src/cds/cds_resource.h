@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -67,7 +67,8 @@ public:
         std::string_view options = {},
         std::string_view parameters = {});
     CdsResource(
-        ContentHandler handlerType, ResourcePurpose purpose,
+        ContentHandler handlerType,
+        ResourcePurpose purpose,
         std::map<ResourceAttribute, std::string> attributes,
         std::map<std::string, std::string> parameters,
         std::map<std::string, std::string> options);

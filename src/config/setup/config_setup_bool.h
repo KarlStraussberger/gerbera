@@ -4,7 +4,7 @@
 
     config_setup_bool.h - this file is part of Gerbera.
 
-    Copyright (C) 2020-2025 Gerbera Contributors
+    Copyright (C) 2020-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -56,7 +56,9 @@ public:
 
     void makeOption(std::string optValue, const std::shared_ptr<Config>& config, const std::map<std::string, std::string>* arguments = nullptr) override;
 
-    bool getXmlContent(const pugi::xml_node& root);
+    bool getXmlContent(
+        const pugi::xml_node& root,
+        const std::shared_ptr<Config>& config);
 
     bool checkValue(std::string& optValue, const std::string& pathName = "") const;
 

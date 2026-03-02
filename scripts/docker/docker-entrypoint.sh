@@ -3,7 +3,7 @@
 #
 # docker-entrypoint.sh - this file is part of Gerbera.
 #
-# Copyright (C) 2021-2025 Gerbera Contributors
+# Copyright (C) 2021-2026 Gerbera Contributors
 #
 # Gerbera is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2
@@ -26,6 +26,13 @@ if [ "${_UID}" -ne "$IMAGE_UID" -a "${_UID}" -gt 0 ]; then
   sudo usermod -u "${_UID}" "$IMAGE_USER"
 fi
 
+if ! (command su-exec $IMAGE_USER /bin/true 2>&1) > /dev/null
+then
+  if [ -n "$(cat /etc/passwd | grep gerbera | grep nologin)" ]; then
+    sudo usermod -s "" "$IMAGE_USER"
+  fi
+fi
+
 if [ "${_GID}" -ne "$IMAGE_GID" -a "${_GID}" -gt 0 ]; then
   sudo groupmod -g "${_GID}" "$IMAGE_GROUP" || usermod -a -G "${_GID}" "$IMAGE_USER"
 fi
@@ -42,18 +49,14 @@ if [ ! -f /var/run/gerbera/config.xml ]; then
   fi
 
   # Generate a config file with home set
-  gerbera --create-config --home /var/run/gerbera > /var/run/gerbera/config.xml
+  gerbera --create-config --home /var/run/gerbera --scripts /mnt/customization/js --modules=Autoscan > /var/run/gerbera/config.xml
 
   # Automatically scan /content with inotify (for a volume mount)
-  sed 's|<import hidden-files="no">|<import hidden-files="no">\n\
-    <autoscan use-inotify="yes">\n\
-    <directory location="/mnt/content" mode="inotify" \
-               recursive="yes" hidden-files="no"/>\n\
-    </autoscan>|' -i /var/run/gerbera/config.xml
-
-  # Add directory for custom JavaScript scripts
-  sed 's|</common>|</common>\
-        <custom>/mnt/customization/js</custom>|' -i /var/run/gerbera/config.xml
+  echo \
+'<autoscan use-inotify="yes">
+  <directory location="/mnt/content" mode="inotify"
+             recursive="yes" hidden-files="no"/>
+</autoscan>' > /var/run/gerbera/autoscan.xml
 
   # Allow customization of Gerbera configuration file
   if [ -x /mnt/customization/shell/gerbera_config.sh ]; then
@@ -94,15 +97,17 @@ fi
 # If we are root, chown home and drop privs
 if [[ "$3" =~ "^gerbera " || "$1" == "gerbera" ]]; then
   if [ "$(id -u)" -eq '0' ]; then
-    echo "Root DEF"
-    if ! (command su-exec 2>&1) > /dev/null
+    echo "Running as user $IMAGE_USER instead of root"
+    if ! (command su-exec $IMAGE_USER /bin/true 2>&1) > /dev/null
     then
         sudo touch /var/run/gerbera/run.sh
         sudo chown $IMAGE_USER:$IMAGE_GROUP /var/run/gerbera/run.sh
         sudo chmod 777 /var/run/gerbera/run.sh
         sudo echo $@ > /var/run/gerbera/run.sh
-        exec su - $IMAGE_USER -c "/var/run/gerbera/run.sh"
+        echo "su - $IMAGE_USER"
+        exec su -c "/var/run/gerbera/run.sh" - $IMAGE_USER
     else
+        echo "su-exec $IMAGE_USER"
         exec su-exec $IMAGE_USER "$@"
     fi
     exit

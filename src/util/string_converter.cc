@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -40,6 +40,7 @@
 #include "exceptions.h"
 #include "util/logger.h"
 
+#include <array>
 #include <vector>
 #if FMT_VERSION >= 100202
 #include <fmt/ranges.h>
@@ -49,9 +50,25 @@ StringConverter::StringConverter(const std::string& from, const std::string& to)
     : cd(iconv_open(to.c_str(), from.c_str()))
     , to(to)
 {
+    if (cd == iconv_t(-1)) {
+        cd = {};
+        std::string err = fmt::format("iconv: {}", std::strerror(errno));
+        switch (errno) {
+        case EMFILE:
+            throw_fmt_system_error("{}\n       Too many conversion descriptors open for {} to {}", err, from, to);
+        case ENFILE:
+            throw_fmt_system_error("{}\n       Too many conversion files open for {} to {}", err, from, to);
+        case ENOMEM:
+            throw_fmt_system_error("{}\n       Not enough memory for {} to {}", err, from, to);
+        case EINVAL:
+            throw_fmt_system_error("{}\n       Unsupported conversion for {} to {}", err, from, to);
+        default:
+            throw_fmt_system_error("{}\n       Unexpected error from iconv_open for {} to {}", err, from, to);
+        }
+    }
     if (!cd) {
         cd = {};
-        throw_fmt_system_error("iconv");
+        log_warning("iconv: Unexpected descriptor from iconv_open for {} to {}", from, to);
     }
 }
 
@@ -137,7 +154,7 @@ std::pair<std::string, std::string> StringConverter::_convert(
     auto outputBytes = length;
 
     log_vdebug("iconv: BEFORE: input bytes left: {}  output bytes left: {}", inputBytes, outputBytes);
-#if defined(ICONV_CONST) || defined(SOLARIS)
+#if defined(ICONV_CONST)
     int ret = iconv(cd, inputPtr, &inputBytes, outputPtr, &outputBytes);
 #else
     int ret = iconv(cd, const_cast<char**>(inputPtr), &inputBytes, outputPtr, &outputBytes);
@@ -230,7 +247,7 @@ ConverterManager::ConverterManager(const std::shared_ptr<Config>& cm)
 
     for (auto&& [config, cs] : charsets) {
         converters[cs] = std::make_shared<StringConverter>(
-            cs,
+            cs.empty() ? DEFAULT_INTERNAL_CHARSET : cs,
             DEFAULT_INTERNAL_CHARSET);
     }
 }
@@ -259,7 +276,7 @@ const std::shared_ptr<StringConverter>& ConverterManager::f2i() const
     return converters.at(charsets.at(ConfigVal::IMPORT_FILESYSTEM_CHARSET));
 }
 
-#if defined(HAVE_JS) || defined(HAVE_TAGLIB) || defined(HAVE_MATROSKA)
+#if defined(HAVE_JS) || defined(HAVE_CURL) || defined(HAVE_TAGLIB) || defined(HAVE_MATROSKA)
 const std::shared_ptr<StringConverter>& ConverterManager::i2i() const
 {
     return converters.at(charsets.at(ConfigVal::MAX));

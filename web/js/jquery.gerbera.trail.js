@@ -4,7 +4,7 @@
 
     jquery.gerbera.trail.js - this file is part of Gerbera.
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -61,7 +61,7 @@ $.widget('grb.trail', {
     itemBreadcrumb.appendTo(trailContainer);
 
     const buttonContainer = $('<div></div>');
-    buttonContainer.addClass('col-4 col-sm-5 my-auto');
+    buttonContainer.addClass('col-4 col-sm-6 my-auto');
     let buttons;
 
     buttons = $('<ol></ol>');
@@ -130,6 +130,17 @@ $.widget('grb.trail', {
       autoscanItemIcon.appendTo(buttons);
     }
 
+    if (config.enableDownloadZip && config.onDownloadZip) {
+      const downloadItemIcon = this.generateItemButton(item, {
+        title: 'Download as Zip',
+        tooltip: 'Download content of container as Zip file',
+        class: 'grb-trail-download',
+        iconClass: 'fa-download',
+        click: config.onDownloadZip ? config.onDownloadZip : noOp
+      });
+      downloadItemIcon.appendTo(buttons);
+    }
+
     if (config.enableDelete && config.onDelete) {
       const deleteItemIcon = this.generateItemButton(item, {
         title: 'Delete Container',
@@ -192,7 +203,7 @@ $.widget('grb.trail', {
     }
 
     buttons.appendTo(buttonContainer);
-    trailContainer.addClass('col-8 col-sm-7');
+    trailContainer.addClass('col-8 col-sm-6');
 
     parent.append(trailContainer);
     parent.append(buttonContainer);

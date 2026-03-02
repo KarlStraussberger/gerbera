@@ -4,7 +4,7 @@
 
     sqlite_config_fake.h - this file is part of Gerbera.
 
-    Copyright (C) 2020-2025 Gerbera Contributors
+    Copyright (C) 2020-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -35,19 +35,19 @@ public:
             return "/tmp/gerbera.db";
         }
         if (option == ConfigVal::SERVER_STORAGE_SQLITE_INIT_SQL_FILE) {
-            return "sqlite3.sql";
+            return SL_INIT_FILE;
         }
         if (option == ConfigVal::SERVER_STORAGE_SQLITE_RESTORE) {
             return "true";
         }
         if (option == ConfigVal::SERVER_STORAGE_SQLITE_DROP_FILE) {
-            return "sqlite3-drop.sql";
+            return SL_DROP_FILE;
         }
         if (option == ConfigVal::SERVER_STORAGE_SQLITE_UPGRADE_FILE) {
-            return "sqlite3-upgrade.xml";
+            return SL_UPGR_FILE;
         }
         if (option == ConfigVal::SERVER_STORAGE_DRIVER) {
-            return "sqlite3";
+            return DB_DRIVER_SQLITE;
         }
         return {};
     }
@@ -80,6 +80,7 @@ public:
     bool hasOrigValue(const std::string& item) const override { return false; }
     std::shared_ptr<TranscodingProfileList> getTranscodingProfileListOption(ConfigVal option) const override { return nullptr; }
     std::shared_ptr<DynamicContentList> getDynamicContentListOption(ConfigVal option) const override { return nullptr; }
+    void registerNode(const std::string& xmlPath) override {};
 };
 
 #endif //GERBERA_SQLITE_CONFIG_FAKE_H

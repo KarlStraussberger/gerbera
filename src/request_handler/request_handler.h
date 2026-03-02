@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -37,7 +37,6 @@
 #include <map>
 #include <memory>
 #include <upnp.h>
-#include <vector>
 
 // forward declaration
 class CdsObject;
@@ -55,8 +54,10 @@ class UpnpXMLBuilder;
 
 #define URL_PARAM_TRANSCODE_PROFILE_NAME "pr_name"
 #define URL_PARAM_TRANSCODE "tr"
+#define URL_PARAM_ZIP_REQUEST "zip"
 #define URL_VALUE_TRANSCODE_NO_RES_ID "none"
 #define URL_VALUE_TRANSCODE "1"
+#define URL_VALUE_ZIP_REQUEST "1"
 #define URL_OBJECT_ID "object_id"
 #define URL_REQUEST_TYPE "req_type"
 #define URL_RESOURCE_ID "res_id"
@@ -66,6 +67,9 @@ class RequestHandler {
 public:
     explicit RequestHandler(std::shared_ptr<Content> content, std::shared_ptr<UpnpXMLBuilder> xmlBuilder, std::shared_ptr<Quirks> quirks);
     virtual ~RequestHandler();
+
+    RequestHandler(const RequestHandler&) = delete;
+    RequestHandler& operator=(const RequestHandler&) = delete;
 
     /// @brief Returns header information about the requested content.
     /// @param filename Requested URL

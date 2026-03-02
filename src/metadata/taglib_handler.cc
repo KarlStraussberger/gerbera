@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -52,6 +52,7 @@
 #include <asffile.h>
 #include <attachedpictureframe.h>
 #include <flacfile.h>
+#include <fmt/chrono.h>
 #include <id3v2tag.h>
 #include <mp4file.h>
 #include <mpegfile.h>
@@ -70,6 +71,12 @@
 #include <dsffile.h>
 #include <mp4itemfactory.h>
 #include <wavfile.h>
+
+#if TAGLIB_MINOR_VERSION >= 2
+#include <matroskaattachedfile.h>
+#include <matroskaattachments.h>
+#include <matroskafile.h>
+#endif
 #endif
 
 class GerberaTagLibDebugListener : public TagLib::DebugListener {
@@ -93,6 +100,8 @@ GerberaTagLibDebugListener GerberaTagLibDebugListener::grbListener;
 TagLibHandler::TagLibHandler(const std::shared_ptr<Context>& context)
     : MediaMetadataHandler(context,
           ConfigVal::IMPORT_LIBOPTS_ID3_ENABLED,
+          ConfigVal::IMPORT_LIBOPTS_ID3_CONTENT_ENABLED,
+          ConfigVal::IMPORT_LIBOPTS_ID3_CONTENT_LIST,
           ConfigVal::IMPORT_LIBOPTS_ID3_METADATA_TAGS_LIST,
           ConfigVal::IMPORT_LIBOPTS_ID3_AUXDATA_TAGS_LIST,
           ConfigVal::IMPORT_LIBOPTS_ID3_COMMENT_ENABLED,
@@ -111,7 +120,7 @@ bool TagLibHandler::isSupported(
     const std::string& mimeType,
     ObjectType mediaType)
 {
-    return contentType == CONTENT_TYPE_MP3 || (contentType == CONTENT_TYPE_OGG && !isOggTheora) || contentType == CONTENT_TYPE_WMA || contentType == CONTENT_TYPE_WAVPACK || contentType == CONTENT_TYPE_FLAC || contentType == CONTENT_TYPE_PCM || contentType == CONTENT_TYPE_AIFF || contentType == CONTENT_TYPE_APE || contentType == CONTENT_TYPE_MP4 || contentType == CONTENT_TYPE_DSD;
+    return contentType == CONTENT_TYPE_MP3 || (contentType == CONTENT_TYPE_OGG && !isOggTheora) || contentType == CONTENT_TYPE_WMA || contentType == CONTENT_TYPE_WAVPACK || contentType == CONTENT_TYPE_FLAC || contentType == CONTENT_TYPE_PCM || contentType == CONTENT_TYPE_AIFF || contentType == CONTENT_TYPE_APE || contentType == CONTENT_TYPE_MP4 || contentType == CONTENT_TYPE_DSD || contentType == CONTENT_TYPE_MKV;
 }
 
 void TagLibHandler::addField(
@@ -148,7 +157,15 @@ void TagLibHandler::addField(
         unsigned int i = tag->year();
         if (i == 0)
             return;
-        value.push_back(fmt::format("{}-01-01", i));
+        if (i < 10000) {
+            value.push_back(fmt::format("{}-01-01", i));
+        } else {
+            auto val = fmt::format("{}", i);
+            std::tm tmWork {};
+            if (parseDate(val.c_str(), tmWork)) {
+                value.push_back(fmt::format("{:%Y-%m-%d}", tmWork));
+            }
+        }
         break;
     }
     case MetadataFields::M_DESCRIPTION:
@@ -357,7 +374,7 @@ void TagLibHandler::makeComment(
 bool TagLibHandler::fillMetadata(const std::shared_ptr<CdsObject>& obj)
 {
     auto item = std::dynamic_pointer_cast<CdsItem>(obj);
-    if (!item || !isEnabled)
+    if (!item || !enabled)
         return false;
 
     auto res = item->getResource(ContentHandler::DEFAULT);
@@ -387,6 +404,8 @@ bool TagLibHandler::fillMetadata(const std::shared_ptr<CdsObject>& obj)
         extractAiff(fs, item, res);
     } else if (contentType == CONTENT_TYPE_PCM) {
         extractPcm(fs, item, res);
+    } else if (contentType == CONTENT_TYPE_MKV) {
+        extractMkv(fs, item, res);
     } else {
         log_warning("TagLibHandler: File '{}' has unhandled content type '{}'", item->getLocation().c_str(), contentType.c_str());
         result = false;
@@ -414,7 +433,7 @@ std::unique_ptr<IOHandler> TagLibHandler::serveContent(
     const std::shared_ptr<CdsResource>& resource)
 {
     auto item = std::dynamic_pointer_cast<CdsItem>(obj);
-    if (!item) // not streamable
+    if (!item && !enabled) // not streamable
         return nullptr;
 
     std::string contentType = getValueOrDefault(mimeContentTypeMappings, item->getMimeType());
@@ -558,6 +577,29 @@ std::unique_ptr<IOHandler> TagLibHandler::serveContent(
         const TagLib::ByteVector& data = pic->data();
 
         return std::make_unique<MemIOHandler>(data.data(), data.size());
+    }
+    if (contentType == CONTENT_TYPE_MKV) {
+#if TAGLIB_MAJOR_VERSION >= 2 && TAGLIB_MINOR_VERSION >= 2
+        auto mkv = TagLib::Matroska::File(&roStream);
+
+        if (!mkv.isValid()) {
+            throw_std_runtime_error("Could not open file {}: as Matroska file", itemLocation);
+        }
+        auto attachments = mkv.attachments();
+        if (attachments) {
+            for (auto attmt : attachments->attachedFileList()) {
+                auto fileName = attmt.fileName().to8Bit(true);
+                if (startswith(fileName, "cover")) {
+                    const TagLib::ByteVector& data = attmt.data();
+                    return std::make_unique<MemIOHandler>(data.data(), data.size());
+                }
+            }
+        }
+        throw_std_runtime_error("Matroska resource {} missing picture information", itemLocation);
+#else
+        log_warning("For Matroska support in file '{}' TaglibHandler needs to be built with taglib 2.2 and above", itemLocation);
+        return nullptr;
+#endif
     }
 
     throw_std_runtime_error("File {} has unsupported content type {}", itemLocation, contentType);
@@ -994,6 +1036,38 @@ void TagLibHandler::extractPcm(
     setBitsPerSample(item, res, wav);
 #else
     log_warning("For PCM support in file '{}' TaglibHandler needs to be built with taglib 2 and above", item->getLocation().c_str());
+#endif
+}
+
+void TagLibHandler::extractMkv(
+    TagLib::IOStream& roStream,
+    const std::shared_ptr<CdsItem>& item,
+    const std::shared_ptr<CdsResource>& res) const
+{
+#if TAGLIB_MAJOR_VERSION >= 2 && TAGLIB_MINOR_VERSION >= 2
+    auto mkv = TagLib::Matroska::File(&roStream);
+
+    if (!mkv.isValid()) {
+        log_info("TagLibHandler {}: does not appear to be a valid Matroska file", item->getLocation().c_str());
+        return;
+    }
+    auto sc = converterManager->i2i();
+    populateGenericTags(item, res, mkv, mkv.properties(), sc);
+    auto attachments = mkv.attachments();
+    if (attachments) {
+        for (auto attmt : attachments->attachedFileList()) {
+            auto fileName = attmt.fileName().to8Bit(true);
+            if (startswith(fileName, "cover")) {
+                std::string artMimetype = attmt.mediaType().to8Bit(true);
+                addArtworkResource(item, ContentHandler::ID3, artMimetype);
+                log_debug("{} -> {}", fileName, artMimetype);
+            }
+        }
+    }
+
+    setBitsPerSample(item, res, mkv);
+#else
+    log_warning("For Matroska support in file '{}' TaglibHandler needs to be built with taglib 2.2 and above", item->getLocation().c_str());
 #endif
 }
 

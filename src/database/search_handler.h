@@ -3,7 +3,7 @@
 
   search_handler.h - this file is part of Gerbera.
 
-  Copyright (C) 2018-2025 Gerbera Contributors
+  Copyright (C) 2018-2026 Gerbera Contributors
 
   Gerbera is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License version 2
@@ -36,7 +36,6 @@
 #include <map>
 #include <memory>
 #include <tuple>
-#include <unordered_map>
 #include <vector>
 
 #define UPNP_SEARCH_ID "@id"
@@ -115,6 +114,9 @@ class SQLEmitter;
 class ASTNode {
 public:
     virtual ~ASTNode() = default;
+
+    ASTNode(const ASTNode&) = delete;
+    ASTNode& operator=(const ASTNode&) = delete;
 
     std::string emitSQL() const;
     virtual std::string emit() const = 0;
@@ -289,7 +291,12 @@ protected:
 
 class SQLEmitter {
 public:
+    SQLEmitter() = default;
     virtual ~SQLEmitter() = default;
+
+    SQLEmitter(const SQLEmitter&) = delete;
+    SQLEmitter& operator=(const SQLEmitter&) = delete;
+
     virtual std::string emitSQL(const ASTNode* node) const = 0;
     virtual std::string emit(const ASTAsterisk* node) const = 0;
     virtual std::string emit(const ASTParenthesis* node,
@@ -323,7 +330,12 @@ enum class FieldType {
 /// @brief base interface for templated column mapping and quoting operations
 class ColumnMapper {
 public:
+    ColumnMapper() = default;
     virtual ~ColumnMapper() = default;
+
+    ColumnMapper(const ColumnMapper&) = delete;
+    ColumnMapper& operator=(const ColumnMapper&) = delete;
+
     /// @brief check whether tag is valid colum
     virtual bool hasEntry(const std::string& tag) const = 0;
     /// @brief get the table name

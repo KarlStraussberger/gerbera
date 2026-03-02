@@ -47,7 +47,7 @@
     <upnp-string-limit>-1</upnp-string-limit>
     <virtualURL></virtualURL>
     <externalURL></externalURL>
-    <upnp literal-host-redirection="no" multi-value="yes" search-result-separator=" - " search-filename="no" searchable-container-flag="no" caption-info-count="-1">
+    <upnp literal-host-redirection="no" multi-value="yes" search-result-separator=" - " search-filename="no" searchable-container-flag="yes" caption-info-count="-1">
       <search-item-result>
         <add-data tag="M_ARTIST" />
         <add-data tag="M_TITLE" />
@@ -275,6 +275,12 @@
           <box key="Image/allYears" title="Year" class="object.container" upnp-shortcut="IMAGES_YEARS" />
           <box key="Image/imageRoot" title="Photos" class="object.container" upnp-shortcut="IMAGES" />
           <box key="Image/unknown" title="Unknown" class="object.container" />
+          <box key="ImageDetail/allModels" title="All Models" class="object.container" />
+          <box key="ImageDetail/yearMonth" title="Year+Month" class="object.container" />
+          <box key="ImageDetail/yearDate" title="Year+Date" class="object.container" />
+          <box key="Topic/topicRoot" title="Topics" class="object.container" />
+          <box key="Topic/topic" title="Topic" class="object.container" />
+          <box key="Topic/topicExtra" title="Extra" class="object.container" />
           <box key="Trailer/trailerRoot" title="Online Services" class="object.container" />
           <box key="Trailer/allTrailers" title="All Trailers" class="object.container" />
           <box key="Trailer/allGenres" title="Genres" class="object.container" />
@@ -291,30 +297,92 @@
       <libexif charset="UTF-8" enabled="yes">
         <auxdata></auxdata>
         <metadata></metadata>
+        <libcontent enabled="no">
+          <add-libcontent contenttype="jpg" />
+          <add-libcontent contenttype="png" />
+        </libcontent>
         <comment enabled="no"></comment>
       </libexif>
+      <exiv2 charset="UTF-8" enabled="yes">
+        <auxdata></auxdata>
+        <metadata></metadata>
+        <libcontent enabled="no">
+          <add-libcontent contenttype="jpg" />
+          <add-libcontent contenttype="png" />
+        </libcontent>
+        <comment enabled="yes">
+          <add-comment label="Flash setting" tag="Exif.Photo.Flash" />
+          <add-comment label="Focal length" tag="Exif.Photo.FocalLength" />
+          <add-comment label="Focal length 35 mm equivalent" tag="Exif.Photo.FocalLengthIn35mmFilm" />
+          <add-comment label="Taken with" tag="Exif.Image.Model" />
+        </comment>
+      </exiv2>
       <id3 charset="UTF-8" enabled="yes">
         <auxdata></auxdata>
         <metadata>
           <add-data tag="PERFORMER" key="upnp:artist@role[Performer]" />
         </metadata>
+        <libcontent enabled="no">
+          <add-libcontent contenttype="aiff" />
+          <add-libcontent contenttype="ape" />
+          <add-libcontent contenttype="asf" />
+          <add-libcontent contenttype="avi" />
+          <add-libcontent contenttype="dsd" />
+          <add-libcontent contenttype="flac" />
+          <add-libcontent contenttype="jpg" />
+          <add-libcontent contenttype="mka" />
+          <add-libcontent contenttype="mkv" />
+          <add-libcontent contenttype="mp3" />
+          <add-libcontent contenttype="mpeg" />
+          <add-libcontent contenttype="ogg" />
+          <add-libcontent contenttype="pcm" />
+          <add-libcontent contenttype="png" />
+          <add-libcontent contenttype="wv" />
+          <add-libcontent contenttype="wma" />
+        </libcontent>
         <comment enabled="no"></comment>
       </id3>
-      <ffmpeg charset="UTF-8" enabled="yes" artwork-enabled="no">
+      <ffmpeg charset="UTF-8" enabled="yes" artwork-enabled="no" streams-enabled="no" subtitle-seek-size="2048">
         <auxdata></auxdata>
         <metadata>
           <add-data tag="performer" key="upnp:artist@role[Performer]" />
         </metadata>
+        <libcontent enabled="no">
+          <add-libcontent contenttype="aiff" />
+          <add-libcontent contenttype="ape" />
+          <add-libcontent contenttype="asf" />
+          <add-libcontent contenttype="avi" />
+          <add-libcontent contenttype="dsd" />
+          <add-libcontent contenttype="flac" />
+          <add-libcontent contenttype="jpg" />
+          <add-libcontent contenttype="mka" />
+          <add-libcontent contenttype="mkv" />
+          <add-libcontent contenttype="mp3" />
+          <add-libcontent contenttype="mp4" />
+          <add-libcontent contenttype="mpeg" />
+          <add-libcontent contenttype="ogg" />
+          <add-libcontent contenttype="pcm" />
+          <add-libcontent contenttype="png" />
+          <add-libcontent contenttype="wv" />
+          <add-libcontent contenttype="wma" />
+        </libcontent>
         <comment enabled="no"></comment>
       </ffmpeg>
       <mkv charset="UTF-8" enabled="yes">
         <auxdata></auxdata>
         <metadata></metadata>
+        <libcontent enabled="yes">
+          <add-libcontent contenttype="mka" />
+          <add-libcontent contenttype="mkv" />
+        </libcontent>
         <comment enabled="no"></comment>
       </mkv>
       <wavpack charset="UTF-8" enabled="yes">
         <auxdata></auxdata>
         <metadata></metadata>
+        <libcontent enabled="yes">
+          <add-libcontent contenttype="wv" />
+        </libcontent>
         <comment enabled="no"></comment>
       </wavpack>
     </library-options>
@@ -467,7 +535,7 @@
         <agent command="ffmpeg" arguments="-y -i %in -f mp3 %out" />
         <buffer size="1048576" chunk-size="131072" fill-size="262144" />
       </profile>
-      <profile name="vlcmpeg" enabled="no" type="external" no-transcoding="" dlna-profile="MP4">
+      <profile name="vlcmpeg" enabled="no" type="external" no-transcoding="">
         <mimetype>video/mpeg</mimetype>
         <accept-url>yes</accept-url>
         <first-resource>yes</first-resource>
@@ -476,6 +544,7 @@
         <audio-channels>-1</audio-channels>
         <thumbnail>no</thumbnail>
         <hide-original-resource>no</hide-original-resource>
+        <dlna-profile>MP4</dlna-profile>
         <avi-fourcc-list mode="Ignore">
           <fourcc>XVID</fourcc>
           <fourcc>DX50</fourcc>

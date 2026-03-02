@@ -4,7 +4,7 @@
 
     upnp/clients.h - this file is part of Gerbera.
 
-    Copyright (C) 2020-2025 Gerbera Contributors
+    Copyright (C) 2020-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -34,6 +34,7 @@
 #include "upnp/quirks.h"
 #include "util/grb_time.h"
 
+#include <utility>
 #include <vector>
 
 // forward declarations
@@ -45,7 +46,10 @@ enum class ClientType {
     Unknown = 0, // if not listed otherwise
     BubbleUPnP,
     SamsungAllShare,
+    SamsungSeriesA,
+    SamsungSeriesB,
     SamsungSeriesQ,
+    SamsungSeriesQN,
     SamsungBDP,
     SamsungSeriesCDE,
     SamsungBDJ5500,
@@ -118,7 +122,7 @@ struct ClientObservation {
         , userAgent(std::move(userAgent))
         , last(last)
         , age(age)
-        , headers(headers)
+        , headers(std::move(headers))
         , pInfo(pInfo)
     {
     }

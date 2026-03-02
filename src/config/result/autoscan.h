@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -40,7 +40,6 @@
 #include "upnp/upnp_common.h"
 #include "util/timer.h"
 
-#include <mutex>
 #include <string_view>
 
 // forward declarations
@@ -118,6 +117,9 @@ public:
         int mediaType = -1,
         const std::map<AutoscanMediaMode, std::string>& containerMap = ContainerTypesDefaults);
     ~AutoscanDirectory() override = default;
+
+    AutoscanDirectory(const AutoscanDirectory&) = delete;
+    AutoscanDirectory& operator=(const AutoscanDirectory&) = delete;
 
     bool equals(const std::shared_ptr<AutoscanDirectory>& other) const { return this->getScanID() == other->getScanID(); }
 

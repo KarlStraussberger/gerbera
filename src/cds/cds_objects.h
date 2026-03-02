@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -43,6 +43,36 @@
 #include <map>
 #include <memory>
 #include <vector>
+
+/// @brief allow identification of user created objects
+enum class ObjectSource : int {
+    /// @brief object was automatically created
+    Import,
+    /// @brief user modified object after import
+    ImportModified,
+    /// @brief user created object
+    User,
+};
+
+/// @brief tag the object with its type
+enum class CdsEntryType : int {
+    /// @brief the object was not yet defined
+    Unset = -1,
+    /// @brief the root object
+    Root,
+    /// @brief the object was created from a directory on disk
+    Directory,
+    /// @brief the object was created from a file on disk
+    File,
+    /// @brief the container tree was created as part of the virtual layout
+    VirtualContainer,
+    /// @brief the item was created as part of the virtual layout
+    VirtualItem,
+    /// @brief Url pointing to some web stream
+    ExternalUrl,
+    /// @brief Dynamic folder pointing to some search
+    DynamicFolder,
+};
 
 /// @brief Generic object in the Content Directory.
 class CdsObject {
@@ -88,15 +118,31 @@ protected:
     /// @brief property that allows to sort objects within a container
     std::string sortKey;
 
+    /// @brief where does the object come from
+    ObjectSource source { ObjectSource::Import };
+
+    /// @brief type of database entry
+    CdsEntryType entryType { CdsEntryType::Unset };
+
+    /// @brief metadata of object defined by UPnP protocol
     std::vector<std::pair<std::string, std::string>> metaData;
+
+    /// @brief additional metadata with no relation to UPnP
     std::map<std::string, std::string> auxdata;
+
+    /// logical or physical components assigned to object
     std::vector<std::shared_ptr<CdsResource>> resources;
 
     /// @brief reference to parent, transporting details from import script
     std::shared_ptr<CdsObject> parent;
 
 public:
+    explicit CdsObject(CdsEntryType type)
+        : entryType(type) {};
     virtual ~CdsObject() = default;
+
+    CdsObject(const CdsObject&) = delete;
+    CdsObject& operator=(const CdsObject&) = delete;
 
     /// @brief Set the object ID.
     ///
@@ -159,7 +205,11 @@ public:
     ObjectType getMediaType(const std::string& contentType = "") const;
 
     /// @brief Set the physical location of the media (usually an absolute path)
-    void setLocation(const fs::path& location) { this->location = location; }
+    void setLocation(const fs::path& location, CdsEntryType type)
+    {
+        this->location = location;
+        this->entryType = type;
+    }
     /// @brief Retrieve media location.
     const fs::path& getLocation() const { return location; }
 
@@ -183,12 +233,26 @@ public:
     /// @brief Query the virtual flag.
     bool isVirtual() const { return virt; }
 
+    /// @brief Set the source
+    void setSource(ObjectSource source)
+    {
+        if (source > this->source)
+            this->source = source;
+    }
+    /// @brief Query the source
+    ObjectSource getSource() const { return source; }
+
+    /// @brief Set the entry type
+    void setEntryType(CdsEntryType type) { this->entryType = type; }
+    /// @brief Query the entry type
+    CdsEntryType getEntryType() const { return entryType; }
+
     /// @brief Query information on object type: item, container, etc.
     unsigned int getObjectType() const { return objectType; }
-    virtual bool isItem() const { return false; }
-    virtual bool isPureItem() const { return false; }
-    virtual bool isExternalItem() const { return false; }
-    virtual bool isContainer() const { return false; }
+    bool isItem() const { return isPureItem() || isExternalItem(); }
+    bool isPureItem() const { return entryType == CdsEntryType::File || entryType == CdsEntryType::VirtualItem; }
+    bool isExternalItem() const { return entryType == CdsEntryType::ExternalUrl; }
+    bool isContainer() const { return entryType == CdsEntryType::Directory || entryType == CdsEntryType::VirtualContainer || entryType == CdsEntryType::DynamicFolder; }
 
     /// @brief Get flags of an object.
     unsigned int getFlags() const { return objectFlags; }
@@ -215,7 +279,7 @@ public:
     void clearFlag(unsigned int mask) { objectFlags &= ~mask; }
 
     /// @brief Query single metadata value.
-    std::string getMetaData(const MetadataFields& key) const
+    std::string getMetaData(MetadataFields key) const
     {
         auto field = MetaEnumMapper::getMetaFieldName(key);
         return this->getMetaData(field);
@@ -227,7 +291,7 @@ public:
         return it != metaData.end() ? it->second : std::string();
     }
     /// @brief Query multivalue metadata.
-    std::vector<std::string> getMetaGroup(const MetadataFields& key) const
+    std::vector<std::string> getMetaGroup(MetadataFields key) const
     {
         auto field = MetaEnumMapper::getMetaFieldName(key);
         return this->getMetaGroup(field);
@@ -265,7 +329,7 @@ public:
     }
 
     /// @brief Add a single metadata value.
-    void addMetaData(const MetadataFields key, const std::string& value)
+    void addMetaData(MetadataFields key, const std::string& value)
     {
         if (mt_single.at(key))
             removeMetaData(key);
@@ -278,7 +342,7 @@ public:
     }
 
     /// @brief Removes metadata with the given key
-    void removeMetaData(const MetadataFields key)
+    void removeMetaData(MetadataFields key)
     {
         metaData.erase(std::remove_if(metaData.begin(), metaData.end(), [field = MetaEnumMapper::getMetaFieldName(key)](auto&& md) { return md.first == field; }), metaData.end());
     }
@@ -403,12 +467,22 @@ public:
     /// @brief Checks if the minimum required parameters for the object have been set and are valid.
     virtual void validate() const;
 
+    /// @brief factory method to create correct sub class
     static std::shared_ptr<CdsObject> createObject(unsigned int objectType);
+    static std::shared_ptr<CdsObject> createObject(CdsEntryType entryType);
 
-    static std::string_view mapObjectType(unsigned int type);
+    static std::string mapObjectType(unsigned int type);
+    static unsigned int remapObjectType(const std::string& type);
+
+    static std::string mapEntryType(CdsEntryType type);
+    static CdsEntryType remapEntryType(const std::string& type);
+
     static std::string mapFlags(int flag);
     static int remapFlags(const std::string& flag);
     static int makeFlag(const std::string& optValue);
+
+    static std::string mapSource(ObjectSource source);
+    static ObjectSource remapSource(const std::string& source);
 };
 
 #endif // __CDS_OBJECTS_H__

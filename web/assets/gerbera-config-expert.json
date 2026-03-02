@@ -1159,6 +1159,47 @@
           ]
         },
         {
+          "item": "/import/scripting/virtual-layout/model-map/model",
+          "caption": "Camera Model Map",
+          "type": "List",
+          "editable": true,
+          "children": [
+            {
+              "item": "/import/scripting/virtual-layout/model-map/model/attribute::from",
+              "caption": "Pattern",
+              "editable": true
+            },
+            {
+              "item": "/import/scripting/virtual-layout/model-map/model/attribute::to",
+              "caption": "Value",
+              "editable": true
+            }
+          ]
+        },
+        {
+          "item": "/import/scripting/virtual-layout/headline-map/headline",
+          "caption": "Topic Headline Rule",
+          "type": "List",
+          "editable": true,
+          "children": [
+            {
+              "item": "/import/scripting/virtual-layout/headline-map/headline/attribute::from",
+              "caption": "Pattern",
+              "editable": true
+            },
+            {
+              "item": "/import/scripting/virtual-layout/headline-map/headline/attribute::to",
+              "caption": "Value",
+              "editable": true
+            },
+            {
+              "item": "/import/scripting/virtual-layout/headline-map/headline/attribute::type",
+              "caption": "Type",
+              "editable": true
+            }
+          ]
+        },
+        {
           "item": "/import/scripting/virtual-layout/boxlayout/box",
           "caption": "Box Layout",
           "type": "List",
@@ -1167,6 +1208,16 @@
             {
               "item": "/import/scripting/virtual-layout/boxlayout/box/attribute::key",
               "caption": "Key",
+              "editable": true
+            },
+            {
+              "item": "/import/scripting/virtual-layout/boxlayout/box/attribute::enabled",
+              "caption": "Enabled",
+              "editable": true
+            },
+            {
+              "item": "/import/scripting/virtual-layout/boxlayout/box/attribute::searchable",
+              "caption": "Searchable",
               "editable": true
             },
             {
@@ -1644,6 +1695,24 @@
               ]
             },
             {
+              "item": "/import/library-options/libexif/libcontent/attribute::enabled",
+              "caption": "libcontent enabled",
+              "editable": true
+            },
+            {
+              "item": "/import/library-options/libexif/libcontent/add-libcontent",
+              "caption": "libcontent",
+              "type": "List",
+              "editable": true,
+              "children": [
+                {
+                  "item": "/import/library-options/libexif/libcontent/add-libcontent/attribute::contenttype",
+                  "caption": "Content Type",
+                  "editable": true
+                }
+              ]
+            },
+            {
               "item": "/import/library-options/libexif/comment/attribute::enabled",
               "caption": "comment enabled",
               "editable": true
@@ -1711,6 +1780,24 @@
                 {
                   "item": "/import/library-options/id3/metadata/add-data/attribute::key",
                   "caption": "Upnp metadata entry",
+                  "editable": true
+                }
+              ]
+            },
+            {
+              "item": "/import/library-options/id3/libcontent/attribute::enabled",
+              "caption": "libcontent enabled",
+              "editable": true
+            },
+            {
+              "item": "/import/library-options/id3/libcontent/add-libcontent",
+              "caption": "libcontent",
+              "type": "List",
+              "editable": true,
+              "children": [
+                {
+                  "item": "/import/library-options/id3/libcontent/add-libcontent/attribute::contenttype",
+                  "caption": "Content Type",
                   "editable": true
                 }
               ]
@@ -1788,6 +1875,24 @@
               ]
             },
             {
+              "item": "/import/library-options/exiv2/libcontent/attribute::enabled",
+              "caption": "libcontent enabled",
+              "editable": true
+            },
+            {
+              "item": "/import/library-options/exiv2/libcontent/add-libcontent",
+              "caption": "libcontent",
+              "type": "List",
+              "editable": true,
+              "children": [
+                {
+                  "item": "/import/library-options/exiv2/libcontent/add-libcontent/attribute::contenttype",
+                  "caption": "Content Type",
+                  "editable": true
+                }
+              ]
+            },
+            {
               "item": "/import/library-options/exiv2/comment/attribute::enabled",
               "caption": "comment enabled",
               "editable": true
@@ -1820,17 +1925,27 @@
           "children": [
             {
               "item": "/import/library-options/ffmpeg/attribute::enabled",
-              "caption": "enabled",
+              "caption": "Enabled",
               "editable": true
             },
             {
               "item": "/import/library-options/ffmpeg/attribute::charset",
-              "caption": "charset",
+              "caption": "Charset",
+              "editable": true
+            },
+            {
+              "item": "/import/library-options/ffmpeg/attribute::artwork-enabled",
+              "caption": "Artwork Enabled",
+              "editable": true
+            },
+            {
+              "item": "/import/library-options/ffmpeg/attribute::streams-enabled",
+              "caption": "Streams Enabled",
               "editable": true
             },
             {
               "item": "/import/library-options/ffmpeg/auxdata/add-data",
-              "caption": "auxdata",
+              "caption": "AuxData",
               "type": "List",
               "editable": true,
               "children": [
@@ -1843,7 +1958,7 @@
             },
             {
               "item": "/import/library-options/ffmpeg/metadata/add-data",
-              "caption": "metadata",
+              "caption": "Metadata",
               "type": "List",
               "editable": true,
               "children": [
@@ -1860,24 +1975,42 @@
               ]
             },
             {
+              "item": "/import/library-options/ffmpeg/libcontent/attribute::enabled",
+              "caption": "libcontent enabled",
+              "editable": true
+            },
+            {
+              "item": "/import/library-options/ffmpeg/libcontent/add-libcontent",
+              "caption": "LibContent",
+              "type": "List",
+              "editable": true,
+              "children": [
+                {
+                  "item": "/import/library-options/ffmpeg/libcontent/add-libcontent/attribute::contenttype",
+                  "caption": "Content Type",
+                  "editable": true
+                }
+              ]
+            },
+            {
               "item": "/import/library-options/ffmpeg/comment/attribute::enabled",
-              "caption": "comment enabled",
+              "caption": "Comment Enabled",
               "editable": true
             },
             {
               "item": "/import/library-options/ffmpeg/comment/add-comment",
-              "caption": "comment",
+              "caption": "Comment",
               "type": "List",
               "editable": true,
               "children": [
                 {
                   "item": "/import/library-options/ffmpeg/comment/add-comment/attribute::label",
-                  "caption": "Comment label",
+                  "caption": "Comment Label",
                   "editable": true
                 },
                 {
                   "item": "/import/library-options/ffmpeg/comment/add-comment/attribute::tag",
-                  "caption": "Comment metadata",
+                  "caption": "Comment Metadata",
                   "editable": true
                 }
               ]
@@ -1885,7 +2018,7 @@
           ]
         },
         {
-          "item": "/import/library-options/ffmpeg",
+          "item": "/import/library-options/wavpack",
           "type": "Element",
           "caption": "wavpack Library Options",
           "editable": true,
@@ -1927,6 +2060,24 @@
                 {
                   "item": "/import/library-options/wavpack/metadata/add-data/attribute::key",
                   "caption": "Upnp metadata entry",
+                  "editable": true
+                }
+              ]
+            },
+            {
+              "item": "/import/library-options/wavpack/libcontent/attribute::enabled",
+              "caption": "libcontent enabled",
+              "editable": true
+            },
+            {
+              "item": "/import/library-options/wavpack/libcontent/add-libcontent",
+              "caption": "libcontent",
+              "type": "List",
+              "editable": true,
+              "children": [
+                {
+                  "item": "/import/library-options/wavpack/libcontent/add-libcontent/attribute::contenttype",
+                  "caption": "Content Type",
                   "editable": true
                 }
               ]
@@ -1999,6 +2150,24 @@
                 {
                   "item": "/import/library-options/mkv/metadata/add-data/attribute::key",
                   "caption": "Upnp metadata entry",
+                  "editable": true
+                }
+              ]
+            },
+            {
+              "item": "/import/library-options/mkv/libcontent/attribute::enabled",
+              "caption": "libcontent enabled",
+              "editable": true
+            },
+            {
+              "item": "/import/library-options/mkv/libcontent/add-libcontent",
+              "caption": "libcontent",
+              "type": "List",
+              "editable": true,
+              "children": [
+                {
+                  "item": "/import/library-options/mkv/libcontent/add-libcontent/attribute::contenttype",
+                  "caption": "Content Type",
                   "editable": true
                 }
               ]
@@ -2218,6 +2387,11 @@
               "editable": true
             },
             {
+              "item": "/transcoding/mimetype-profile-mappings/transcode/attribute::client-without-flag",
+              "caption": "Client without flags",
+              "editable": true
+            },
+            {
               "item": "/transcoding/mimetype-profile-mappings/transcode/attribute::using",
               "caption": "Profile",
               "editable": false
@@ -2243,6 +2417,11 @@
             {
               "item": "/transcoding/profiles/profile/attribute::client-flags",
               "caption": "Client flags",
+              "editable": true
+            },
+            {
+              "item": "/transcoding/profiles/profile/attribute::client-without-flag",
+              "caption": "Client without flags",
               "editable": true
             },
             {
@@ -2575,7 +2754,7 @@
           "editable": true,
           "children": [
             {
-              "item": "/server/upnp/album-properties/upnp-namespace/attribute::xmlns",
+              "item": "/server/upnp/album-properties/upnp-namespace/attribute::xml-ns",
               "caption": "xmlns",
               "editable": true
             },
@@ -2611,7 +2790,7 @@
           "editable": true,
           "children": [
             {
-              "item": "/server/upnp/artist-properties/upnp-namespace/attribute::xmlns",
+              "item": "/server/upnp/artist-properties/upnp-namespace/attribute::xml-ns",
               "caption": "xmlns",
               "editable": true
             },
@@ -2647,7 +2826,7 @@
           "editable": true,
           "children": [
             {
-              "item": "/server/upnp/genre-properties/upnp-namespace/attribute::xmlns",
+              "item": "/server/upnp/genre-properties/upnp-namespace/attribute::xml-ns",
               "caption": "xmlns",
               "editable": true
             },
@@ -2683,7 +2862,7 @@
           "editable": true,
           "children": [
             {
-              "item": "/server/upnp/playlist-properties/upnp-namespace/attribute::xmlns",
+              "item": "/server/upnp/playlist-properties/upnp-namespace/attribute::xml-ns",
               "caption": "xmlns",
               "editable": true
             },
@@ -2719,7 +2898,7 @@
           "editable": true,
           "children": [
             {
-              "item": "/server/upnp/title-properties/upnp-namespace/attribute::xmlns",
+              "item": "/server/upnp/title-properties/upnp-namespace/attribute::xml-ns",
               "caption": "xmlns",
               "editable": true
             },

@@ -3,7 +3,7 @@
 
     sl_result.h - this file is part of Gerbera.
 
-    Copyright (C) 2025 Gerbera Contributors
+    Copyright (C) 2025-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -29,7 +29,10 @@
 
 class SQLRow {
 public:
+    SQLRow() = default;
     virtual ~SQLRow() = default;
+    SQLRow(const SQLRow&) = delete;
+    SQLRow& operator=(const SQLRow&) = delete;
     /// @brief Returns true if the column index contains the value NULL
     bool isNullOrEmpty(int index) const
     {
@@ -65,6 +68,9 @@ public:
 
 class SQLResult {
 public:
+    SQLResult(const SQLResult&) = delete;
+    SQLResult& operator=(const SQLResult&) = delete;
+    SQLResult() = default;
     virtual ~SQLResult() = default;
     virtual std::unique_ptr<SQLRow> nextRow() = 0;
     virtual unsigned long long getNumRows() const = 0;

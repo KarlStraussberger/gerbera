@@ -4,7 +4,7 @@
 
     script_names.h - this file is part of Gerbera.
 
-    Copyright (C) 2020-2025 Gerbera Contributors
+    Copyright (C) 2020-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -51,6 +51,7 @@ const static auto res_names = std::map<ResourceAttribute, std::string> {
     std::pair(ResourceAttribute::VIDEOCODEC, "R_VIDEOCODEC"),
     std::pair(ResourceAttribute::ORIENTATION, "R_ORIENTATION"),
     std::pair(ResourceAttribute::PIXELFORMAT, "R_PIXELFORMAT"),
+    std::pair(ResourceAttribute::LYRICS, "R_LYRICS"),
 };
 
 const static auto mt_names = std::map<MetadataFields, std::string_view> {
@@ -96,6 +97,7 @@ const static auto upnp_classes = std::map<const std::string_view, const std::str
     { UPNP_CLASS_MUSIC_CONDUCTOR, "UPNP_CLASS_CONTAINER_MUSIC_CONDUCTOR" },
     { UPNP_CLASS_MUSIC_ORCHESTRA, "UPNP_CLASS_CONTAINER_MUSIC_ORCHESTRA" },
     { UPNP_CLASS_CONTAINER, "UPNP_CLASS_CONTAINER" },
+    { UPNP_CLASS_ALBUM, "UPNP_CLASS_CONTAINER_ALBUM" },
 
     { UPNP_CLASS_ITEM, "UPNP_CLASS_ITEM" },
     { UPNP_CLASS_PLAYLIST_ITEM, "UPNP_CLASS_PLAYLIST_ITEM" },
@@ -119,7 +121,7 @@ const static auto upnp_classes = std::map<const std::string_view, const std::str
     { UPNP_CLASS_DYNAMIC_CONTAINER, "UPNP_CLASS_DYNAMIC_CONTAINER" },
 };
 
-const static auto boxKeyNames = std::map<const std::string_view, const std::string_view> {
+const static auto boxKeyNames = std::map<const std::string_view, BoxKeys> {
     { "BK_audioAllAlbums", BoxKeys::audioAllAlbums },
     { "BK_audioAllArtists", BoxKeys::audioAllArtists },
     { "BK_audioAll", BoxKeys::audioAll },
@@ -157,6 +159,13 @@ const static auto boxKeyNames = std::map<const std::string_view, const std::stri
     { "BK_imageAllYears", BoxKeys::imageAllYears },
     { "BK_imageRoot", BoxKeys::imageRoot },
     { "BK_imageUnknown", BoxKeys::imageUnknown },
+    { "BK_imageAllModels", BoxKeys::imageAllModels },
+    { "BK_imageYearMonth", BoxKeys::imageYearMonth },
+    { "BK_imageYearDate", BoxKeys::imageYearDate },
+
+    { "BK_topicRoot", BoxKeys::topicRoot },
+    { "BK_topic", BoxKeys::topic },
+    { "BK_topicExtra", BoxKeys::topicExtra },
 
 #ifdef ONLINE_SERVICES
     { "BK_trailerAllGenres", BoxKeys::trailerAllGenres },

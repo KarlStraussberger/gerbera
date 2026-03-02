@@ -4,7 +4,7 @@
 
     directory_tweak.h - this file is part of Gerbera.
 
-    Copyright (C) 2020-2025 Gerbera Contributors
+    Copyright (C) 2020-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -31,8 +31,6 @@
 #include "util/grb_fs.h"
 
 #include <map>
-#include <mutex>
-#include <vector>
 
 // forward declaration
 class AutoscanDirectory;

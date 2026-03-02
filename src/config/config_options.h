@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -230,7 +230,7 @@ private:
 /// @brief Implementation of option value for dictionaries
 class DictionaryOption : public ConfigOption {
 public:
-    explicit DictionaryOption() { }
+    explicit DictionaryOption() = default;
     explicit DictionaryOption(const std::map<std::string, std::string>& option)
         : option(option)
         , origSize(option.size())
@@ -264,7 +264,7 @@ private:
 /// @brief Implementation of option value for vectors
 class VectorOption : public ConfigOption {
 public:
-    explicit VectorOption() { }
+    explicit VectorOption() = default;
     explicit VectorOption(const std::vector<std::vector<std::pair<std::string, std::string>>>& option)
         : option(option)
         , origSize(option.size())

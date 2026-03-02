@@ -4,7 +4,7 @@
 
     config_setup_transcoding.cc - this file is part of Gerbera.
 
-    Copyright (C) 2020-2025 Gerbera Contributors
+    Copyright (C) 2020-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -44,12 +44,15 @@
 /// @brief Creates an array of TranscodingProfile objects from an XML
 /// nodeset.
 /// @param element starting element of the nodeset.
-bool ConfigTranscodingSetup::createOptionFromNode(const pugi::xml_node& element, std::shared_ptr<TranscodingProfileList>& result) const
+bool ConfigTranscodingSetup::createOptionFromNode(
+    const std::shared_ptr<Config>& config,
+    const pugi::xml_node& element,
+    std::shared_ptr<TranscodingProfileList>& result) const
 {
     if (!element)
         return true;
 
-    const pugi::xml_node& root = element.root();
+    auto root = element.root().first_child();
 
     // initialize mapping dictionary
     std::vector<std::shared_ptr<TranscodingFilter>> trFilters;
@@ -65,14 +68,18 @@ bool ConfigTranscodingSetup::createOptionFromNode(const pugi::xml_node& element,
 
     // go through filters
     for (auto&& it : filterNodes) {
-        const pugi::xml_node child = it.node();
+        auto child = it.node();
+        if (config) {
+            config->registerNode(child.path());
+        }
 
         auto filter = std::make_shared<TranscodingFilter>(
-            definition->findConfigSetup<ConfigStringSetup>(ConfigVal::A_TRANSCODING_MIMETYPE_PROF_MAP_MIMETYPE)->getXmlContent(child),
-            definition->findConfigSetup<ConfigStringSetup>(ConfigVal::A_TRANSCODING_MIMETYPE_PROF_MAP_USING)->getXmlContent(child));
-        filter->setSourceProfile(definition->findConfigSetup<ConfigStringSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_SRCDLNA)->getXmlContent(child));
-        filter->setClientFlags(definition->findConfigSetup<ConfigUIntSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_CLIENTFLAGS)->getXmlContent(child));
-        auto noTranscoding = definition->findConfigSetup<ConfigStringSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_NOTRANSCODING)->getXmlContent(child);
+            definition->findConfigSetup<ConfigStringSetup>(ConfigVal::A_TRANSCODING_MIMETYPE_PROF_MAP_MIMETYPE)->getXmlContent(child, config),
+            definition->findConfigSetup<ConfigStringSetup>(ConfigVal::A_TRANSCODING_MIMETYPE_PROF_MAP_USING)->getXmlContent(child, config));
+        filter->setSourceProfile(definition->findConfigSetup<ConfigStringSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_SRCDLNA)->getXmlContent(child, config));
+        filter->setClientFlags(definition->findConfigSetup<ConfigUIntSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_CLIENTFLAGS)->getXmlContent(child, config));
+        filter->setMatchWithOut(definition->findConfigSetup<ConfigBoolSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_CLIENTWITHOUT)->getXmlContent(child, config));
+        auto noTranscoding = definition->findConfigSetup<ConfigStringSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_NOTRANSCODING)->getXmlContent(child, config);
         std::vector<std::string> noTranscodingVector;
         for (auto&& mime : splitString(noTranscoding, ','))
             noTranscodingVector.push_back(trimString(mime));
@@ -81,7 +88,7 @@ bool ConfigTranscodingSetup::createOptionFromNode(const pugi::xml_node& element,
         result->add(filter);
     }
 
-    bool allowUnusedProfiles = definition->findConfigSetup<ConfigBoolSetup>(ConfigVal::TRANSCODING_PROFILES_PROFILE_ALLOW_UNUSED)->getXmlContent(root);
+    bool allowUnusedProfiles = definition->findConfigSetup<ConfigBoolSetup>(ConfigVal::TRANSCODING_PROFILES_PROFILE_ALLOW_UNUSED)->getXmlContent(root, config);
     if (!allowUnusedProfiles && trFilters.empty()) {
         log_error("Error in configuration: transcoding "
                   "profiles exist, but no mimetype to profile mappings specified");
@@ -90,13 +97,17 @@ bool ConfigTranscodingSetup::createOptionFromNode(const pugi::xml_node& element,
 
     // go through profiles
     for (auto&& it : profileNodes) {
-        const pugi::xml_node child = it.node();
+        auto child = it.node();
+        if (config) {
+            config->registerNode(child.path());
+        }
 
         auto prof = std::make_shared<TranscodingProfile>(
-            definition->findConfigSetup<ConfigBoolSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_ENABLED)->getXmlContent(child),
-            definition->findConfigSetup<ConfigEnumSetup<TranscodingType>>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_TYPE)->getXmlContent(child),
-            definition->findConfigSetup<ConfigStringSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_NAME)->getXmlContent(child));
-        prof->setClientFlags(definition->findConfigSetup<ConfigUIntSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_CLIENTFLAGS)->getXmlContent(child));
+            definition->findConfigSetup<ConfigBoolSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_ENABLED)->getXmlContent(child, config),
+            definition->findConfigSetup<ConfigEnumSetup<TranscodingType>>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_TYPE)->getXmlContent(child, config),
+            definition->findConfigSetup<ConfigStringSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_NAME)->getXmlContent(child, config));
+        prof->setClientFlags(definition->findConfigSetup<ConfigUIntSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_CLIENTFLAGS)->getXmlContent(child, config));
+        prof->setMatchWithOut(definition->findConfigSetup<ConfigBoolSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_CLIENTWITHOUT)->getXmlContent(child, config));
 
         // read resolution
         {
@@ -118,18 +129,18 @@ bool ConfigTranscodingSetup::createOptionFromNode(const pugi::xml_node& element,
             pugi::xml_node sub = definition->findConfigSetup<ConfigSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_MIMETYPE)->getXmlElement(child);
             std::string mimetype;
             if (sub) {
-                mimetype = definition->findConfigSetup<ConfigStringSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_MIMETYPE_VALUE)->getXmlContent(sub);
+                mimetype = definition->findConfigSetup<ConfigStringSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_MIMETYPE_VALUE)->getXmlContent(sub, config);
                 if (!mimetype.empty()) {
                     // handle properties
                     for (auto prop : sub) {
-                        auto key = definition->findConfigSetup<ConfigStringSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_MIMETYPE_PROPERTIES_KEY)->getXmlContent(prop);
-                        auto resource = definition->findConfigSetup<ConfigEnumSetup<ResourceAttribute>>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_MIMETYPE_PROPERTIES_RESOURCE)->getXmlContent(prop);
-                        auto metadata = definition->findConfigSetup<ConfigEnumSetup<MetadataFields>>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_MIMETYPE_PROPERTIES_METADATA)->getXmlContent(prop);
+                        auto key = definition->findConfigSetup<ConfigStringSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_MIMETYPE_PROPERTIES_KEY)->getXmlContent(prop, config);
+                        auto resource = definition->findConfigSetup<ConfigEnumSetup<ResourceAttribute>>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_MIMETYPE_PROPERTIES_RESOURCE)->getXmlContent(prop, config);
+                        auto metadata = definition->findConfigSetup<ConfigEnumSetup<MetadataFields>>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_MIMETYPE_PROPERTIES_METADATA)->getXmlContent(prop, config);
                         prof->addTargetMimeProperty(TranscodingMimeProperty(key, resource, metadata));
                         log_debug("MimeProperty {}, key={}, resource={}, metadata={}", mimetype, key, EnumMapper::getAttributeName(resource), MetaEnumMapper::getMetaFieldName(metadata));
                     }
                 } else {
-                    mimetype = definition->findConfigSetup<ConfigStringSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_MIMETYPE)->getXmlContent(child);
+                    mimetype = definition->findConfigSetup<ConfigStringSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_MIMETYPE)->getXmlContent(child, config);
                 }
                 prof->setTargetMimeType(mimetype);
             }
@@ -139,9 +150,9 @@ bool ConfigTranscodingSetup::createOptionFromNode(const pugi::xml_node& element,
             auto cs = definition->findConfigSetup<ConfigArraySetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_AVI4CC);
             if (cs->hasXmlElement(child)) {
                 pugi::xml_node sub = cs->getXmlElement(child);
-                AviFourccListmode fccMode = definition->findConfigSetup<ConfigEnumSetup<AviFourccListmode>>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_AVI4CC_MODE)->getXmlContent(sub);
+                AviFourccListmode fccMode = definition->findConfigSetup<ConfigEnumSetup<AviFourccListmode>>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_AVI4CC_MODE)->getXmlContent(sub, config);
                 if (fccMode != AviFourccListmode::None) {
-                    prof->setAVIFourCCList(cs->getXmlContent(sub), fccMode);
+                    prof->setAVIFourCCList(cs->getXmlContent(sub, config), fccMode);
                 }
             }
         }
@@ -149,42 +160,42 @@ bool ConfigTranscodingSetup::createOptionFromNode(const pugi::xml_node& element,
         {
             auto cs = definition->findConfigSetup<ConfigStringSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_DLNAPROF);
             if (cs->hasXmlElement(child))
-                prof->setDlnaProfile(cs->getXmlContent(child));
+                prof->setDlnaProfile(cs->getXmlContent(child, config));
         }
         {
             auto cs = definition->findConfigSetup<ConfigBoolSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_ACCURL);
             if (cs->hasXmlElement(child))
-                prof->setAcceptURL(cs->getXmlContent(child));
+                prof->setAcceptURL(cs->getXmlContent(child, config));
         }
         {
             auto cs = definition->findConfigSetup<ConfigIntSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_SAMPFREQ);
             if (cs->hasXmlElement(child))
-                prof->setSampleFreq(cs->getXmlContent(child));
+                prof->setSampleFreq(cs->getXmlContent(child, config));
         }
         {
             auto cs = definition->findConfigSetup<ConfigIntSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_NRCHAN);
             if (cs->hasXmlElement(child))
-                prof->setNumChannels(cs->getXmlContent(child));
+                prof->setNumChannels(cs->getXmlContent(child, config));
         }
         {
             auto cs = definition->findConfigSetup<ConfigBoolSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_HIDEORIG);
             if (cs->hasXmlElement(child))
-                prof->setHideOriginalResource(cs->getXmlContent(child));
+                prof->setHideOriginalResource(cs->getXmlContent(child, config));
         }
         {
             auto cs = definition->findConfigSetup<ConfigBoolSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_THUMB);
             if (cs->hasXmlElement(child))
-                prof->setThumbnail(cs->getXmlContent(child));
+                prof->setThumbnail(cs->getXmlContent(child, config));
         }
         {
             auto cs = definition->findConfigSetup<ConfigBoolSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_FIRST);
             if (cs->hasXmlElement(child))
-                prof->setFirstResource(cs->getXmlContent(child));
+                prof->setFirstResource(cs->getXmlContent(child, config));
         }
         {
             auto cs = definition->findConfigSetup<ConfigBoolSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_ACCOGG);
             if (cs->hasXmlElement(child))
-                prof->setTheora(cs->getXmlContent(child));
+                prof->setTheora(cs->getXmlContent(child, config));
         }
 
         // read agent options
@@ -192,21 +203,21 @@ bool ConfigTranscodingSetup::createOptionFromNode(const pugi::xml_node& element,
             pugi::xml_node sub = definition->findConfigSetup<ConfigSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_AGENT)->getXmlElement(child);
             auto cs = definition->findConfigSetup<ConfigPathSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_AGENT_COMMAND);
             cs->setFlag(prof->isEnabled(), ConfigPathArguments::mustExist);
-            prof->setCommand(cs->getXmlContent(sub));
-            prof->setArguments(definition->findConfigSetup<ConfigStringSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_AGENT_ARGS)->getXmlContent(sub));
+            prof->setCommand(cs->getXmlContent(sub, config));
+            prof->setArguments(definition->findConfigSetup<ConfigStringSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_AGENT_ARGS)->getXmlContent(sub, config));
         }
         {
             auto cs = definition->findConfigSetup<ConfigDictionarySetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_AGENT_ENVIRON);
             if (cs->hasXmlElement(child))
-                prof->setEnviron(cs->getXmlContent(cs->getXmlElement(child)));
+                prof->setEnviron(cs->getXmlContent(cs->getXmlElement(child), config));
         }
 
         // set buffer options
         {
             pugi::xml_node sub = definition->findConfigSetup<ConfigSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_BUFFER)->getXmlElement(child);
-            std::size_t buffer = definition->findConfigSetup<ConfigUIntSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_BUFFER_SIZE)->getXmlContent(sub);
-            std::size_t chunk = definition->findConfigSetup<ConfigUIntSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_BUFFER_CHUNK)->getXmlContent(sub);
-            std::size_t fill = definition->findConfigSetup<ConfigUIntSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_BUFFER_FILL)->getXmlContent(sub);
+            std::size_t buffer = definition->findConfigSetup<ConfigUIntSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_BUFFER_SIZE)->getXmlContent(sub, config);
+            std::size_t chunk = definition->findConfigSetup<ConfigUIntSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_BUFFER_CHUNK)->getXmlContent(sub, config);
+            std::size_t fill = definition->findConfigSetup<ConfigUIntSetup>(ConfigVal::A_TRANSCODING_PROFILES_PROFLE_BUFFER_FILL)->getXmlContent(sub, config);
 
             if (chunk > buffer) {
                 log_error("Error in configuration: transcoding profile \"{}\" chunk size can not be greater than buffer size", prof->getName());
@@ -238,7 +249,7 @@ bool ConfigTranscodingSetup::createOptionFromNode(const pugi::xml_node& element,
     }
 
     // validate profiles
-    bool allowUnusedFilter = definition->findConfigSetup<ConfigBoolSetup>(ConfigVal::TRANSCODING_MIMETYPE_PROF_MAP_ALLOW_UNUSED)->getXmlContent(root);
+    bool allowUnusedFilter = definition->findConfigSetup<ConfigBoolSetup>(ConfigVal::TRANSCODING_MIMETYPE_PROF_MAP_ALLOW_UNUSED)->getXmlContent(root, config);
     for (auto&& filter : trFilters) {
         if (!filter->getTranscodingProfile()) {
             if (!allowUnusedFilter) {
@@ -251,12 +262,15 @@ bool ConfigTranscodingSetup::createOptionFromNode(const pugi::xml_node& element,
     return true;
 }
 
-void ConfigTranscodingSetup::makeOption(const pugi::xml_node& root, const std::shared_ptr<Config>& config, const std::map<std::string, std::string>* arguments)
+void ConfigTranscodingSetup::makeOption(
+    const pugi::xml_node& root,
+    const std::shared_ptr<Config>& config,
+    const std::map<std::string, std::string>* arguments)
 {
     if (arguments && arguments->find("isEnabled") != arguments->end()) {
         isEnabled = arguments->at("isEnabled") == "true";
     }
-    newOption(getXmlElement(root));
+    newOption(config, getXmlElement(root));
     setOption(config);
 }
 
@@ -334,6 +348,16 @@ bool ConfigTranscodingSetup::updateDetail(const std::string& optItem,
                     return true;
                 },
             },
+            // Client without flags
+            {
+                { ConfigVal::A_TRANSCODING_MIMETYPE_FILTER, ConfigVal::A_TRANSCODING_PROFILES_PROFLE_CLIENTWITHOUT },
+                "Client without flags",
+                [&](const std::shared_ptr<TranscodingFilter>& entry) { return fmt::to_string(entry->matchesWithOut()); },
+                [&](const std::shared_ptr<TranscodingFilter>& entry, const std::shared_ptr<ConfigDefinition>& definition, ConfigVal cfg, std::string& optValue) {
+                    entry->setMatchWithOut(definition->findConfigSetup<ConfigBoolSetup>(cfg)->checkValue(optValue));
+                    return true;
+                },
+            },
             // Source DLNA Profile
             {
                 { ConfigVal::A_TRANSCODING_MIMETYPE_FILTER, ConfigVal::A_TRANSCODING_PROFILES_PROFLE_SRCDLNA },
@@ -396,6 +420,16 @@ bool ConfigTranscodingSetup::updateDetail(const std::string& optItem,
                 [&](const std::shared_ptr<TranscodingProfile>& entry) { return fmt::to_string(entry->getClientFlags()); },
                 [&](const std::shared_ptr<TranscodingProfile>& entry, const std::shared_ptr<ConfigDefinition>& definition, ConfigVal cfg, std::string& optValue) {
                     entry->setClientFlags(definition->findConfigSetup<ConfigUIntSetup>(cfg)->checkIntValue(optValue));
+                    return true;
+                },
+            },
+            // Client without flags
+            {
+                { ConfigVal::A_TRANSCODING_PROFILES_PROFLE, ConfigVal::A_TRANSCODING_PROFILES_PROFLE_CLIENTWITHOUT },
+                "Client without flags",
+                [&](const std::shared_ptr<TranscodingProfile>& entry) { return fmt::to_string(entry->matchesWithOut()); },
+                [&](const std::shared_ptr<TranscodingProfile>& entry, const std::shared_ptr<ConfigDefinition>& definition, ConfigVal cfg, std::string& optValue) {
+                    entry->setMatchWithOut(definition->findConfigSetup<ConfigBoolSetup>(cfg)->checkValue(optValue));
                     return true;
                 },
             },
@@ -684,11 +718,13 @@ bool ConfigTranscodingSetup::updateDetail(const std::string& optItem,
     return false;
 }
 
-std::shared_ptr<ConfigOption> ConfigTranscodingSetup::newOption(const pugi::xml_node& optValue)
+std::shared_ptr<ConfigOption> ConfigTranscodingSetup::newOption(
+    const std::shared_ptr<Config>& config,
+    const pugi::xml_node& optValue)
 {
     auto result = std::make_shared<TranscodingProfileList>();
 
-    if (!createOptionFromNode(isEnabled ? optValue : pugi::xml_node(nullptr), result)) {
+    if (!createOptionFromNode(config, isEnabled ? optValue : pugi::xml_node(nullptr), result)) {
         throw_std_runtime_error("Init {} transcoding failed '{}'", xpath, optValue.name());
     }
     optionValue = std::make_shared<TranscodingProfileListOption>(result);

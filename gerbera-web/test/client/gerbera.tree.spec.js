@@ -4,7 +4,7 @@
 
     gerbera.tree.spec.js - this file is part of Gerbera.
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -237,6 +237,7 @@ describe('Gerbera Tree', () => {
             autoScanMode: 'none',
             autoScanType: 'none',
             image: null,
+            zip: "http://localhost/media/object/2778/zip/1/Photos.zip",
             path: "/my/Directory/",
             upnpShortcut: null,
             upnpClass: "upnp.class",
@@ -271,6 +272,7 @@ describe('Gerbera Tree', () => {
             autoScanMode: 'none',
             autoScanType: 'none',
             image: null,
+            zip: "http://localhost/media/object/2778/zip/1/Photos.zip",
             path: "/my/Directory/",
             upnpShortcut: null,
             upnpClass: "upnp.class",
@@ -426,6 +428,7 @@ describe('Gerbera Tree', () => {
           autoScanMode: 'none',
           autoScanType: 'none',
           image: null,
+          zip: null,
           path: null,
           upnpShortcut: null,
           upnpClass: null,

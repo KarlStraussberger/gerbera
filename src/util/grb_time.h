@@ -3,7 +3,7 @@ Gerbera - https://gerbera.io/
 
     grb_time.h - this file is part of Gerbera.
 
-    Copyright (C) 2022-2025 Gerbera Contributors
+    Copyright (C) 2022-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -26,7 +26,6 @@ Gerbera - https://gerbera.io/
 
 #include <chrono>
 #include <string>
-#include <string_view>
 
 enum class GrbTimeType {
     Seconds,
@@ -46,7 +45,7 @@ std::chrono::seconds toSeconds(TP tp)
 std::string millisecondsToHMSF(long long milliseconds);
 
 /// @brief converts a "H*:MM:SS.F*" representation to milliseconds
-long long HMSFToMilliseconds(std::string_view time);
+long long HMSFToMilliseconds(const std::string& time);
 std::string millisecondsToString(long long milliseconds, bool all = false);
 
 std::chrono::seconds currentTime();
@@ -56,6 +55,7 @@ std::chrono::milliseconds getDeltaMillis(std::chrono::milliseconds ms);
 std::chrono::milliseconds getDeltaMillis(std::chrono::milliseconds first, std::chrono::milliseconds second);
 
 bool parseSimpleDate(const std::string& s, std::chrono::seconds& date);
+bool parseDate(const char* value, std::tm& tmWork);
 bool parseTime(long long& value, std::string& timeValue, GrbTimeType type = GrbTimeType::Seconds);
 std::string makeSimpleDate(std::string& s);
 

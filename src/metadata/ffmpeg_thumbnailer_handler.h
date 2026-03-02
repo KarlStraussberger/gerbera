@@ -4,7 +4,7 @@ Gerbera - https://gerbera.io/
 
     ffmpeg_thumbnailer_handler.h - this file is part of Gerbera.
 
-    Copyright (C) 2022-2025 Gerbera Contributors
+    Copyright (C) 2022-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -71,6 +71,19 @@ private:
 
     /// @brief read cached thumbnail
     std::optional<std::vector<std::byte>> readThumbnailCacheFile(const fs::path& movieFilename) const;
+
+    /// @brief size of thumbnails
+    int thumbSize;
+    /// @brief percentage of video to seek for thumbnail
+    int seekPercentage;
+    /// @brief image quality of thumbnails
+    int imageQuality;
+    /// @brief use thumbnail cache
+    bool cacheEnabled;
+    /// @brief add film strip overlay
+    bool stripOverlay;
+    /// @brief rotate images automatically based on orientation
+    bool doRotate;
 
     /// @brief cache generated thumb
     void writeThumbnailCacheFile(

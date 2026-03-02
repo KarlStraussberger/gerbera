@@ -4,7 +4,7 @@
 
     config_setup_string.cc - this file is part of Gerbera.
 
-    Copyright (C) 2020-2025 Gerbera Contributors
+    Copyright (C) 2020-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -33,13 +33,18 @@
 #include "util/string_converter.h"
 #include "util/tools.h"
 
-void ConfigStringSetup::makeOption(const pugi::xml_node& root, const std::shared_ptr<Config>& config, const std::map<std::string, std::string>* arguments)
+#include <pugixml.hpp>
+
+void ConfigStringSetup::makeOption(
+    const pugi::xml_node& root,
+    const std::shared_ptr<Config>& config,
+    const std::map<std::string, std::string>* arguments)
 {
     bool trim = true;
     if (arguments && arguments->find("trim") != arguments->end()) {
         trim = arguments->at("trim") == "true";
     }
-    newOption(getXmlContent(root, trim));
+    newOption(getXmlContent(root, config, trim));
     setOption(config);
 }
 

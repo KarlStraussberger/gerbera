@@ -4,7 +4,7 @@
 
     upnp/headers.h - this file is part of Gerbera.
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -27,15 +27,14 @@
 #define GERBERA_HEADERS_H
 
 #include <map>
-#include <memory>
+#include <string>
 #include <upnp.h>
-#include <vector>
 
 /// @brief Utility class for HTTP headers in UPnP requests
 class Headers {
 public:
     Headers(const UpnpFileInfo* fileInfo);
-    Headers() { }
+    Headers() = default;
 
     /// @brief update header value
     void updateHeader(const std::string& key, const std::string& value);

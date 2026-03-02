@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -58,6 +58,5 @@ constexpr auto DIR_SEPARATOR = char('/');
 
 static constexpr auto CLIENT_GROUP_TAG = "group";
 #define DEFAULT_CLIENT_GROUP "default"
-#define UNUSED_CLIENT_GROUP ""
 
 #endif // __COMMON_H__

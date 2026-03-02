@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -119,11 +119,12 @@ void ContentDirectoryService::doBrowse(ActionRequest& request)
     else if (browseFlag != "BrowseMetadata")
         throw UpnpException(UPNP_SOAP_E_INVALID_ARGS, "Invalid browse flag: " + browseFlag);
 
-    auto parent = database->loadObject(quirks->getGroup(), objectID);
+    auto parent = database->loadObject(objectID, quirks->getGroup());
     auto upnpClass = parent->getClass();
+    log_debug("browse {}", upnpClass);
     if (sortCriteria.empty() && (startswith(upnpClass, UPNP_CLASS_MUSIC_ALBUM) || startswith(upnpClass, UPNP_CLASS_PLAYLIST_CONTAINER)))
         flag |= BROWSE_TRACK_SORT;
-    else if (quirks->hasFlag(QUIRK_FLAG_FORCE_SORT_CRITERIA_TITLE))
+    else if (quirks->hasFlag(Quirk::ForceSortCriteriaTitle))
         sortCriteria = fmt::format("+{}", MetaEnumMapper::getMetaFieldName(MetadataFields::M_TITLE));
     if (filter.empty())
         filter = "*";
@@ -132,7 +133,7 @@ void ContentDirectoryService::doBrowse(ActionRequest& request)
 
     auto param = BrowseParam(parent, flag);
 
-    param.setDynamicContainers(!quirks || !quirks->checkFlags(QUIRK_FLAG_SAMSUNG_HIDE_DYNAMIC));
+    param.setDynamicContainers(!quirks || !quirks->hasFlag(Quirk::SamsungHideDynamic));
     param.setStartingIndex(startingIndex);
     param.setRequestedCount(requestedCount);
     param.setSortCriteria(trimString(sortCriteria));
@@ -159,7 +160,7 @@ void ContentDirectoryService::doBrowse(ActionRequest& request)
 
     // build response
     pugi::xml_document didlLite;
-    if (!quirks->blockXmlDeclaration()) {
+    if (!quirks->hasFlag(Quirk::NoXmlDeclaration)) {
         auto decl = didlLite.prepend_child(pugi::node_declaration);
         decl.append_attribute("version") = "1.0";
         decl.append_attribute("encoding") = "UTF-8";
@@ -180,7 +181,7 @@ void ContentDirectoryService::doBrowse(ActionRequest& request)
         xmlBuilder->renderObject(obj, splitString(filter, ','), stringLimitClient, didlLiteRoot, quirks);
     }
 
-    std::string didlLiteXml = UpnpXMLBuilder::printXml(didlLite, "", quirks && quirks->needsStrictXml() ? pugi::format_no_escapes : 0);
+    std::string didlLiteXml = UpnpXMLBuilder::printXml(didlLite, "", quirks && quirks->hasFlag(Quirk::StrictXML) ? pugi::format_no_escapes : 0);
     log_debug("didl {}", didlLiteXml);
 
     auto response = xmlBuilder->createResponse(request.getActionName(), UPNP_DESC_CDS_SERVICE_TYPE);
@@ -221,7 +222,7 @@ void ContentDirectoryService::doSearch(ActionRequest& request)
 
     auto&& quirks = request.getQuirks();
     pugi::xml_document didlLite;
-    if (!quirks || !quirks->blockXmlDeclaration()) {
+    if (!quirks || !quirks->hasFlag(Quirk::NoXmlDeclaration)) {
         auto decl = didlLite.prepend_child(pugi::node_declaration);
         decl.append_attribute("version") = "1.0";
         decl.append_attribute("encoding") = "UTF-8";
@@ -231,9 +232,9 @@ void ContentDirectoryService::doSearch(ActionRequest& request)
     didlLiteRoot.append_attribute(UPNP_XML_DC_NAMESPACE_ATTR) = UPNP_XML_DC_NAMESPACE;
     didlLiteRoot.append_attribute(UPNP_XML_UPNP_NAMESPACE_ATTR) = UPNP_XML_UPNP_NAMESPACE;
     didlLiteRoot.append_attribute(UPNP_XML_SEC_NAMESPACE_ATTR) = UPNP_XML_SEC_NAMESPACE;
-    if (quirks->checkFlags(QUIRK_FLAG_PV_SUBTITLES))
+    if (quirks->hasFlag(Quirk::PvSubtitles))
         didlLiteRoot.append_attribute("xmlns:pv") = "http://www.pv.com/pvns/";
-    if (sortCriteria.empty() || quirks->hasFlag(QUIRK_FLAG_FORCE_SORT_CRITERIA_TITLE)) {
+    if (sortCriteria.empty() || quirks->hasFlag(Quirk::ForceSortCriteriaTitle)) {
         sortCriteria = fmt::format("+{}", MetaEnumMapper::getMetaFieldName(MetadataFields::M_TITLE));
     }
     if (filter.empty())
@@ -288,7 +289,7 @@ void ContentDirectoryService::doSearch(ActionRequest& request)
         xmlBuilder->renderObject(cdsObject, splitString(filter, ','), stringLimitClient, didlLiteRoot);
     }
 
-    std::string didlLiteXml = UpnpXMLBuilder::printXml(didlLite, "", quirks && quirks->needsStrictXml() ? pugi::format_no_escapes : 0);
+    std::string didlLiteXml = UpnpXMLBuilder::printXml(didlLite, "", quirks && quirks->hasFlag(Quirk::StrictXML) ? pugi::format_no_escapes : 0);
     log_debug("didl {}", didlLiteXml);
 
     auto response = xmlBuilder->createResponse(request.getActionName(), UPNP_DESC_CDS_SERVICE_TYPE);
@@ -435,14 +436,14 @@ void ContentDirectoryService::doSamsungGetIndexfromRID(ActionRequest& request)
     log_debug("end");
 }
 
-bool ContentDirectoryService::processSubscriptionRequest(const SubscriptionRequest& request)
+bool ContentDirectoryService::processSubscriptionRequest(const SubscriptionRequest& request) const
 {
     log_debug("start");
 
     auto propset = xmlBuilder->createEventPropertySet();
     auto property = propset->document_element().first_child();
     property.append_child("SystemUpdateID").append_child(pugi::node_pcdata).set_value(fmt::to_string(systemUpdateID).c_str());
-    auto obj = database->loadObject(DEFAULT_CLIENT_GROUP, 0);
+    auto obj = database->loadObject(0, DEFAULT_CLIENT_GROUP);
     auto cont = std::static_pointer_cast<CdsContainer>(obj);
     property.append_child("ContainerUpdateIDs").append_child(pugi::node_pcdata).set_value(fmt::format("0,{}", cont->getUpdateID()).c_str());
 

@@ -4,7 +4,7 @@
 
     ui_handler.cc - this file is part of Gerbera.
 
-    Copyright (C) 2024-2025 Gerbera Contributors
+    Copyright (C) 2024-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -77,6 +77,7 @@ bool UIHandler::getInfo(const char* filename, UpnpFileInfo* info)
     auto headers = Headers();
     headers.addHeader("Content-Security-Policy", csp);
     headers.addHeader("SameSite", "Lax");
+    headers.addHeader("Vary", "Origin");
     if (quirks)
         quirks->updateHeaders(headers);
     headers.writeHeaders(info);

@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -62,7 +62,7 @@ bool Web::Items::processPageAction(Json::Value& element, const std::string& acti
     Json::Value items;
     items["parent_id"] = parentID;
 
-    auto container = database->loadObject(getGroup(), parentID);
+    auto container = database->loadObject(parentID, getGroup());
     std::string trackFmt = "{:02}";
     auto result = action == "browse"
         ? doBrowse(container, start, count, items, trackFmt)
@@ -77,6 +77,8 @@ bool Web::Items::processPageAction(Json::Value& element, const std::string& acti
         item["title"] = cdsObj->getTitle();
         item["upnp_class"] = cdsObj->getClass();
         item["index"] = fmt::format(trackFmt, cnt);
+        item["source"] = CdsObject::mapSource(cdsObj->getSource());
+
         if (cdsObj->isItem()) {
             auto cdsItem = std::static_pointer_cast<CdsItem>(cdsObj);
             if (cdsItem->getPartNumber() > 0 && container->isSubClass(UPNP_CLASS_MUSIC_ALBUM))
@@ -168,7 +170,7 @@ std::vector<std::shared_ptr<CdsObject>> Web::Items::doBrowse(
         }
     }
     items["autoscan_mode"] = autoscanMode;
-    items["autoscan_type"] = mapAutoscanType(autoscanType).data();
+    items["autoscan_type"] = mapAutoscanType(autoscanType);
     items["protect_container"] = protectContainer;
     items["protect_items"] = protectItems;
 

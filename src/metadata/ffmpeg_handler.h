@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -41,6 +41,7 @@
 #define __FFMPEG_HANDLER_H__
 #ifdef HAVE_FFMPEG
 
+#include "cds/cds_enums.h"
 #include "metadata_enums.h"
 #include "metadata_handler.h"
 
@@ -50,9 +51,11 @@
 class CdsItem;
 class FfmpegObject;
 class IOHandler;
+class StringConverter;
+
 struct AVFormatContext;
 struct AVDictionaryEntry;
-class StringConverter;
+struct AVStream;
 
 /// @brief This class is responsible for reading id3 tags metadata
 class FfmpegHandler : public MediaMetadataHandler {
@@ -83,6 +86,7 @@ private:
         const std::shared_ptr<CdsItem>& item,
         const FfmpegObject& ffmpegObject,
         AVDictionaryEntry* avEntry,
+        ObjectType streamType,
         std::map<MetadataFields, bool>& emptyProperties,
         std::map<std::string, bool>& emptySpecProperties) const;
     /// @brief get additional resource fields
@@ -95,6 +99,11 @@ private:
         const FfmpegObject& ffmpegObject) const;
     /// @brief try to extract mime type and content type from stream data
     std::string getContentTypeFromByteVector(const std::vector<std::uint8_t>& data) const;
+    /// @brief load resource attributes from stream
+    static void setResourceAttributes(
+        const std::shared_ptr<CdsResource>& res,
+        AVStream* st,
+        long long stream_number);
 
     static constexpr std::array propertyMap {
         std::pair(MetadataFields::M_TITLE, "title"),
@@ -107,10 +116,19 @@ private:
         std::pair(MetadataFields::M_ALBUMARTIST, "album_artist"),
         std::pair(MetadataFields::M_COMPOSER, "composer"),
         std::pair(MetadataFields::M_DATE, "date"),
+        std::pair(MetadataFields::M_UPNP_DATE, "date"),
         std::pair(MetadataFields::M_CREATION_DATE, "creation_time"),
+    };
+    static constexpr std::array resourceMap {
+        std::pair(ResourceAttribute::LANGUAGE, "language"),
+        std::pair(ResourceAttribute::LYRICS, "lyrics"),
     };
     /// @brief activate separation of artwork found by handler
     bool artWorkEnabled;
+    /// @brief activate reading metadata from all streams
+    bool streamsEnabled;
+    /// @brief number of bytes to read for mime detection of subtitles
+    unsigned int subtitleSeekSize;
 };
 
 #endif // HAVE_FFMPEG

@@ -4,7 +4,7 @@
 
     upnp_common.h - this file is part of Gerbera.
 
-    Copyright (C) 2021-2025 Gerbera Contributors
+    Copyright (C) 2021-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -60,6 +60,7 @@
 
 #define UPNP_CLASS_CONTAINER "object.container"
 #define UPNP_CLASS_CONTAINER_FOLDER "object.container.storageFolder"
+#define UPNP_CLASS_ALBUM "object.container.album"
 #define UPNP_CLASS_PHOTO_ALBUM "object.container.album.photoAlbum"
 #define UPNP_CLASS_MUSIC_ALBUM "object.container.album.musicAlbum"
 #define UPNP_CLASS_MUSIC_GENRE "object.container.genre.musicGenre"

@@ -4,7 +4,7 @@
 
     upnp/client_manager.cc - this file is part of Gerbera.
 
-    Copyright (C) 2020-2025 Gerbera Contributors
+    Copyright (C) 2020-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -37,6 +37,8 @@
 #include "util/logger.h"
 
 #include <algorithm>
+#include <array>
+#include <pugixml.hpp>
 #include <sys/socket.h>
 #include <upnp.h>
 
@@ -58,8 +60,8 @@ ClientManager::ClientManager(
                 info = getInfoByType(entry.userAgent, ClientMatchType::UserAgent);
             }
             if (!info) {
-                assert(clientProfile[0].type == ClientType::Unknown);
-                info = clientProfile.data();
+                assert(clientProfile.at(0).type == ClientType::Unknown);
+                info = &(clientProfile.at(0));
             }
             entry.pInfo = info;
             cache.push_back(std::move(entry));
@@ -76,7 +78,7 @@ void ClientManager::refresh()
             "Unknown",
             DEFAULT_CLIENT_GROUP,
             ClientType::Unknown,
-            QUIRK_FLAG_NONE,
+            ClientConfig::getFlags({ Quirk::None }),
             ClientMatchType::None,
             "",
         },
@@ -89,7 +91,7 @@ void ClientManager::refresh()
             "Standard UPnP",
             DEFAULT_CLIENT_GROUP,
             ClientType::StandardUPnP,
-            QUIRK_FLAG_NONE,
+            ClientConfig::getFlags({ Quirk::None }),
             ClientMatchType::UserAgent,
             "UPnP/1.0",
         },
@@ -101,7 +103,7 @@ void ClientManager::refresh()
             "BubbleUPnP",
             DEFAULT_CLIENT_GROUP,
             ClientType::BubbleUPnP,
-            QUIRK_FLAG_NONE,
+            ClientConfig::getFlags({ Quirk::None }),
             ClientMatchType::UserAgent,
             "BubbleUPnP",
         },
@@ -110,10 +112,10 @@ void ClientManager::refresh()
         // User-Agent(actionReq): DLNADOC/1.50 SEC_HHP_ Family TV/1.0
         // User-Agent(actionReq): DLNADOC/1.50 SEC_HHP_[TV] UE65JU7000/1.0 UPnP/1.0
         {
-            "Samsung other TVs",
+            "Samsung Series [CDEFJ] TVs",
             DEFAULT_CLIENT_GROUP,
             ClientType::SamsungSeriesCDE,
-            QUIRK_FLAG_SAMSUNG | QUIRK_FLAG_SAMSUNG_FEATURES | QUIRK_FLAG_SAMSUNG_HIDE_DYNAMIC,
+            ClientConfig::getFlags({ Quirk::Samsung, Quirk::SamsungFeatures, Quirk::SamsungHideDynamic, Quirk::DCM10, Quirk::CaptionProtocol, Quirk::SamsungBookmarkSeconds }),
             ClientMatchType::UserAgent,
             "SEC_HHP_",
         },
@@ -121,10 +123,10 @@ void ClientManager::refresh()
         // This is AllShare running on a PC. We don't want to respond with Samsung capabilities, or Windows (and AllShare) might get grumpy.
         // User-Agent(actionReq): DLNADOC/1.50 SEC_HHP_[PC]LPC001/1.0  MS-DeviceCaps/1024
         {
-            "AllShare",
+            "Samsung AllShare",
             DEFAULT_CLIENT_GROUP,
             ClientType::SamsungAllShare,
-            QUIRK_FLAG_NONE,
+            ClientConfig::getFlags({ Quirk::None }),
             ClientMatchType::UserAgent,
             "SEC_HHP_[PC]",
         },
@@ -134,9 +136,39 @@ void ClientManager::refresh()
             "Samsung Series [Q] TVs",
             DEFAULT_CLIENT_GROUP,
             ClientType::SamsungSeriesQ,
-            QUIRK_FLAG_SAMSUNG | QUIRK_FLAG_SAMSUNG_FEATURES | QUIRK_FLAG_SAMSUNG_HIDE_DYNAMIC | QUIRK_FLAG_DCM10,
+            ClientConfig::getFlags({ Quirk::Samsung, Quirk::SamsungFeatures, Quirk::SamsungHideDynamic, Quirk::DCM10, Quirk::CaptionProtocol, Quirk::SamsungBookmarkMilliSeconds }),
             ClientMatchType::UserAgent,
             "SEC_HHP_[TV] Samsung Q",
+        },
+
+        // User-Agent: DLNADOC/1.50 SEC_HHP_Samsung QN90AA 50 TV/1.0
+        {
+            "Samsung Series [QN] TVs",
+            DEFAULT_CLIENT_GROUP,
+            ClientType::SamsungSeriesQN,
+            ClientConfig::getFlags({ Quirk::Samsung, Quirk::SamsungFeatures, Quirk::SamsungHideDynamic, Quirk::DCM10, Quirk::CaptionProtocol, Quirk::SamsungBookmarkMilliSeconds }),
+            ClientMatchType::UserAgent,
+            "SEC_HHP_Samsung QN",
+        },
+
+        // User-Agent: ?
+        {
+            "Samsung Series A TVs",
+            DEFAULT_CLIENT_GROUP,
+            ClientType::SamsungSeriesA,
+            ClientConfig::getFlags({ Quirk::Samsung, Quirk::SamsungFeatures }),
+            ClientMatchType::UserAgent,
+            "SamsungWiselinkPro",
+        },
+
+        // User-Agent: ?
+        {
+            "Samsung Series B TVs",
+            DEFAULT_CLIENT_GROUP,
+            ClientType::SamsungSeriesB,
+            ClientConfig::getFlags({ Quirk::Samsung, Quirk::SamsungFeatures }),
+            ClientMatchType::UserAgent,
+            "Samsung DTV DMR",
         },
 
         // User-Agent(actionReq): DLNADOC/1.50 SEC_HHP_BD-D5100/1.0
@@ -144,7 +176,7 @@ void ClientManager::refresh()
             "Samsung Blu-ray Player BD-D5100",
             DEFAULT_CLIENT_GROUP,
             ClientType::SamsungBDP,
-            QUIRK_FLAG_SAMSUNG | QUIRK_FLAG_SAMSUNG_FEATURES | QUIRK_FLAG_CAPTION_PROTOCOL,
+            ClientConfig::getFlags({ Quirk::Samsung, Quirk::SamsungFeatures }),
             ClientMatchType::UserAgent,
             "SEC_HHP_BD",
         },
@@ -154,7 +186,7 @@ void ClientManager::refresh()
             "Samsung Blu-ray Player J5500",
             DEFAULT_CLIENT_GROUP,
             ClientType::SamsungBDJ5500,
-            QUIRK_FLAG_SAMSUNG | QUIRK_FLAG_SAMSUNG_FEATURES | QUIRK_FLAG_CAPTION_PROTOCOL,
+            ClientConfig::getFlags({ Quirk::Samsung, Quirk::SamsungFeatures, Quirk::CaptionProtocol }),
             ClientMatchType::UserAgent,
             "[BD]J5500",
         },
@@ -164,7 +196,7 @@ void ClientManager::refresh()
             "Dual CR 510",
             DEFAULT_CLIENT_GROUP,
             ClientType::IRadio,
-            QUIRK_FLAG_IRADIO,
+            ClientConfig::getFlags({ Quirk::NoXmlDeclaration }),
             ClientMatchType::UserAgent,
             "EC-IRADIO/1.0",
         },
@@ -174,7 +206,7 @@ void ClientManager::refresh()
             "Technisat DigitRadio 580",
             DEFAULT_CLIENT_GROUP,
             ClientType::FSL,
-            QUIRK_FLAG_SIMPLE_DATE,
+            ClientConfig::getFlags({ Quirk::SimpleDate }),
             ClientMatchType::UserAgent,
             "FSL DLNADOC/1.50",
         },
@@ -184,7 +216,7 @@ void ClientManager::refresh()
             "Panasonic TV",
             DEFAULT_CLIENT_GROUP,
             ClientType::PanasonicTV,
-            QUIRK_FLAG_PANASONIC | QUIRK_FLAG_FORCE_SORT_CRITERIA_TITLE,
+            ClientConfig::getFlags({ Quirk::ForceSortCriteriaTitle }),
             ClientMatchType::UserAgent,
             "Panasonic MIL DLNA CP",
         },
@@ -194,7 +226,7 @@ void ClientManager::refresh()
             "Bose Soundtouch",
             DEFAULT_CLIENT_GROUP,
             ClientType::BoseSoundtouch,
-            QUIRK_FLAG_STRICTXML,
+            ClientConfig::getFlags({ Quirk::StrictXML }),
             ClientMatchType::UserAgent,
             "Allegro-Software-WebClient",
         },
@@ -204,7 +236,7 @@ void ClientManager::refresh()
             "Yamaha RX",
             DEFAULT_CLIENT_GROUP,
             ClientType::YamahaRX,
-            QUIRK_FLAG_ASCIIXML,
+            ClientConfig::getFlags({ Quirk::AsciiXML }),
             ClientMatchType::UserAgent,
             "KnOS/3.2",
         },
@@ -214,7 +246,7 @@ void ClientManager::refresh()
             "Freebox Player",
             DEFAULT_CLIENT_GROUP,
             ClientType::Freebox,
-            QUIRK_FLAG_FORCE_NO_CONVERSION,
+            ClientConfig::getFlags({ Quirk::ForceNoConversion }),
             ClientMatchType::UserAgent,
             "fbxupnpav/6.0",
         },
@@ -297,8 +329,8 @@ const ClientObservation* ClientManager::getInfo(
     }
 
     // always return something, 'Unknown' if we do not know better
-    assert(clientProfile[0].type == ClientType::Unknown);
-    info = clientProfile.data();
+    assert(clientProfile.at(0).type == ClientType::Unknown);
+    info = &(clientProfile.at(0));
 
     // also add to cache, for web-ui proposes only
     return updateCache(addr, userAgent, headers, info);

@@ -3,7 +3,7 @@
 
   sql_table.h - this file is part of Gerbera.
 
-  Copyright (C) 2025 Gerbera Contributors
+  Copyright (C) 2025-2026 Gerbera Contributors
 
   Gerbera is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License version 2
@@ -100,6 +100,8 @@ enum class BrowseColumn {
     Flags,
     PartNumber,
     TrackNumber,
+    Source,
+    EntryType,
     ServiceId,
     LastModified,
     LastUpdated,
@@ -134,6 +136,7 @@ enum class AutoscanColumn {
     PathIds,
     Touched,
     ItemId,
+    EntryType,
 };
 
 /// @brief configvalue column ids
@@ -175,7 +178,14 @@ public:
         , operation(operation)
     {
     }
+    AddUpdateTable() = default;
     virtual ~AddUpdateTable() = default;
+
+    AddUpdateTable(const AddUpdateTable&) = delete;
+    AddUpdateTable& operator=(const AddUpdateTable&) = delete;
+    AddUpdateTable(AddUpdateTable&&) = default;
+    AddUpdateTable& operator=(AddUpdateTable&&) = default;
+
     /// @brief does the insert statement return an object id to retrieve
     virtual std::string hasInsertResult() { return ""; }
     /// @brief get the table name

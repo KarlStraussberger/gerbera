@@ -4,7 +4,7 @@
 
     config_setup_path.cc - this file is part of Gerbera.
 
-    Copyright (C) 2020-2025 Gerbera Contributors
+    Copyright (C) 2020-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -29,6 +29,8 @@
 #include "config/config_definition.h"
 #include "config/config_options.h"
 #include "util/logger.h"
+
+#include <pugixml.hpp>
 
 bool ConfigPathSetup::checkPathValue(std::string& optValue, std::string& pathValue) const
 {
@@ -66,9 +68,12 @@ bool ConfigPathSetup::checkExecutable(std::string& optValue) const
     return true;
 }
 
-fs::path ConfigPathSetup::getXmlContent(const pugi::xml_node& root, bool doResolve)
+fs::path ConfigPathSetup::getXmlContent(
+    const pugi::xml_node& root,
+    const std::shared_ptr<Config>& config,
+    bool doResolve)
 {
-    auto optValue = ConfigSetup::getXmlContent(root, true);
+    auto optValue = ConfigSetup::getXmlContent(root, config, true);
     if (isSet(ConfigPathArguments::isExe)) {
         if (!checkExecutable(optValue)) {
             throw_std_runtime_error("Invalid {} file is not an executable '{}'", xpath, optValue);
@@ -146,15 +151,21 @@ void ConfigPathSetup::setFlag(bool hasFlag, ConfigPathArguments flag)
     this->arguments = hasFlag ? (this->arguments | flag) : (this->arguments & static_cast<ConfigPathArguments>(~static_cast<int>(flag)));
 }
 
-void ConfigPathSetup::makeOption(const pugi::xml_node& root, const std::shared_ptr<Config>& config, const std::map<std::string, std::string>* arguments)
+void ConfigPathSetup::makeOption(
+    const pugi::xml_node& root,
+    const std::shared_ptr<Config>& config,
+    const std::map<std::string, std::string>* arguments)
 {
     loadArguments(arguments);
-    auto optValue = ConfigSetup::getXmlContent(root, true);
+    auto optValue = ConfigSetup::getXmlContent(root, config, true);
     newOption(optValue);
     setOption(config);
 }
 
-void ConfigPathSetup::makeOption(std::string optValue, const std::shared_ptr<Config>& config, const std::map<std::string, std::string>* arguments)
+void ConfigPathSetup::makeOption(
+    std::string optValue,
+    const std::shared_ptr<Config>& config,
+    const std::map<std::string, std::string>* arguments)
 {
     loadArguments(arguments);
     newOption(optValue);

@@ -161,12 +161,32 @@ profile which is defined below.
       :default: `empty`
    ..
 
+      .. versionchanged:: 3.1.0 allow negation with ``~``
       .. code:: xml
 
-         client-flags="TRANSCODE1"
+         client-flags="TRANSCODING1"
+         client-flags="~TRANSCODING1"
 
    If the flags match the ones defined in :ref:`Supported Devices <supported-devices>`, the profile is selected for that client.
-   Choose ``TRANSCODE1``, ``TRANSCODE2``, ``TRANSCODE3`` or an unused flag, e.g. "0x100000", to avoid collisions with other features.
+   Choose ``TRANSCODING1``, ``TRANSCODING2``, ``TRANSCODING3`` or an unused flag, e.g. "0x10000000", to avoid collisions with other features.
+
+   Multiple flags can be separated by ``|``. The profile is selected if at least one flag is present for the client.
+
+   If the value starts with ``~`` (negation), the profile will be active for all clients that do not have the respective :confval:`flags`.
+
+   .. confval:: client-without-flag
+      :type: :confval:`Boolean`
+      :required: false
+      :default: ``false``
+   ..
+
+      .. versionadded:: 3.1.0
+      .. code:: xml
+
+         client-without-flag="true"
+
+   If clients do not have flags they will not get the transcoding resource even if
+   all flags are set. This option adds these clients to get transcoding also.
 
    .. confval:: using
       :type: :confval:`String`
@@ -269,13 +289,33 @@ Profile Attributes
       :default: `empty`
    ..
 
+      .. versionchanged:: 3.1.0 allow negation with ``~``
       .. code:: xml
 
-          client-flags="TRANSCODE1"
+         client-flags="TRANSCODING1"
+         client-flags="~TRANSCODING1"
 
    If the flags match the ones defined in clients, the profile is selected for that client.
-   There are are ``TRANSCODE1``, ``TRANSCODE2``, ``TRANSCODE3`` or choose an unused flag,
-   e.g. ``0x1000000``, to avoid collisions with other features.
+   There are are ``TRANSCODING1``, ``TRANSCODING2``, ``TRANSCODING3`` or choose an unused flag,
+   e.g. ``0x100000000``, to avoid collisions with other features.
+
+   Multiple flags can be separated by ``|``. The profile is selected if at least one flag is present for the client.
+
+   If the value starts with ``~`` (negation), the profile will be active for all clients that do not have the respective :confval:`flags`.
+
+   .. confval:: profile client-without-flag
+      :type: :confval:`Boolean`
+      :required: false
+      :default: ``false``
+   ..
+
+      .. versionadded:: 3.1.0
+      .. code:: xml
+
+         client-without-flag="true"
+
+   If clients do not have flags they will not get the transcoding resource even if
+   all flags are set. This option adds these clients to get transcoding also.
 
    .. confval:: profile type
       :type: :confval:`Enum` (``external``)
@@ -583,7 +623,7 @@ Defines the transcoding agent and the parameters, in the example above we use og
 
           arguments="-I dummy %in --sout %out &quot;#transcode{...}:standard{...}&quot; vlc:quit"
 
-   .. versionchanged:: HEAD Arguments containing spaces ' ' can be enclosed in double quotes ``" = &quot;``
+   .. versionchanged:: 3.0.0 Arguments containing spaces ' ' can be enclosed in double quotes ``" = &quot;``
 
    Specifies the command line arguments that will be given to the transcoder application upon execution.
    There are two special tokens: ``%in`` and ``%out``. Those tokens get substituted by the input file name 

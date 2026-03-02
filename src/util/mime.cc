@@ -4,7 +4,7 @@
 
     mime.cc - this file is part of Gerbera.
 
-    Copyright (C) 2021-2025 Gerbera Contributors
+    Copyright (C) 2021-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -76,7 +76,7 @@ Mime::~Mime()
 #ifdef HAVE_MAGIC
 std::string Mime::fileToMimeType(const fs::path& path, const std::string& defval)
 {
-    const std::lock_guard<std::mutex> lock(mime_mutex);
+    auto lock = std::scoped_lock(mime_mutex);
     const char* mimeType = magic_file(magicCookie, path.c_str());
     if (!mimeType || mimeType[0] == '\0') {
         return defval;

@@ -3,7 +3,7 @@
 
   sql_table.cc - this file is part of Gerbera.
 
-  Copyright (C) 2025 Gerbera Contributors
+  Copyright (C) 2025-2026 Gerbera Contributors
 
   Gerbera is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License version 2
@@ -47,6 +47,8 @@ const std::vector<BrowseColumn> Object2Table::tableColumnOrder = {
     BrowseColumn::Flags,
     BrowseColumn::PartNumber,
     BrowseColumn::TrackNumber,
+    BrowseColumn::Source,
+    BrowseColumn::EntryType,
     BrowseColumn::ServiceId,
     BrowseColumn::LastModified,
     BrowseColumn::LastUpdated,
@@ -87,7 +89,9 @@ const std::vector<AutoscanColumn> Autoscan2Table::tableColumnOrder = {
     AutoscanColumn::RetryCount,
     AutoscanColumn::DirTypes,
     AutoscanColumn::ForceRescan,
+    AutoscanColumn::ItemId,
     AutoscanColumn::ObjLocation,
+    AutoscanColumn::EntryType,
 };
 
 const std::vector<ConfigColumn> Config2Table::tableColumnOrder = {

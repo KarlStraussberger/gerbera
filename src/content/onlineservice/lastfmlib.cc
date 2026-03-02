@@ -3,7 +3,7 @@
 
     lastfmlib.cc - this file is part of Gerbera.
 
-    Copyright (C) 2025 Gerbera Contributors
+    Copyright (C) 2025-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -22,10 +22,12 @@
 /// @brief Implementation of the LastFmScrobbler class.
 
 #ifdef HAVE_CURL
+#define GRB_LOG_FAC GrbLogFacility::online
 
 #include "lastfmlib.h" // API
 
 #include "exceptions.h"
+#include "util/logger.h"
 #include "util/tools.h"
 
 #include <curl/curl.h>
@@ -38,6 +40,7 @@
 static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
 {
     ((std::string*)userp)->append((char*)contents, size * nmemb);
+    log_debug("got {}", *((std::string*)userp));
     return size * nmemb;
 }
 
@@ -45,6 +48,9 @@ LastFmScrobbler::LastFmScrobbler(const std::string& apiKey, const std::string& a
     : apiKey(apiKey)
     , apiSecret(apiSecret)
 {
+    stopRequested = true;
+    if (scrobbleThread.joinable())
+        scrobbleThread.join();
 }
 
 LastFmScrobbler::LastFmScrobbler(const std::string& apiKey, const std::string& apiSecret, const std::string& sessionKey)
@@ -52,6 +58,9 @@ LastFmScrobbler::LastFmScrobbler(const std::string& apiKey, const std::string& a
     , apiSecret(apiSecret)
     , sessionKey(sessionKey)
 {
+    stopRequested = true;
+    if (scrobbleThread.joinable())
+        scrobbleThread.join();
 }
 
 void LastFmScrobbler::authenticate()
@@ -67,17 +76,25 @@ void LastFmScrobbler::authenticate()
 std::string LastFmScrobbler::fetchAuthToken()
 {
     std::vector<std::pair<std::string, std::string>> params = {
+        { "api_key", apiKey },
         { "method", "auth.getToken" },
-        { "api_key", apiKey }
     };
     params.emplace_back("api_sig", buildApiSig(params));
-    std::string response = postRequest(params);
+    std::string response = getRequest(params);
 
     pugi::xml_document doc;
     if (doc.load_string(response.c_str())) {
-        auto token = doc.child("lfm").child("token");
-        if (token)
-            return token.child_value();
+        auto lfm = doc.child("lfm");
+        std::string status = lfm.attribute("status").as_string();
+        log_debug("status = {}", status);
+        if (status == "failed") {
+            auto error = lfm.child("error");
+            log_error("Fetch Auth Token failed\ncode = {}\nmessage = {}", error.attribute("code").as_int(), error.text().as_string());
+        } else {
+            auto token = lfm.child("token");
+            if (token)
+                return token.child_value();
+        }
     }
     return {};
 }
@@ -92,17 +109,25 @@ bool LastFmScrobbler::fetchSessionKey(const std::string& token)
     std::vector<std::pair<std::string, std::string>> params = {
         { "method", "auth.getSession" },
         { "api_key", apiKey },
-        { "token", token }
+        { "token", token },
     };
     params.emplace_back("api_sig", buildApiSig(params));
-    std::string response = postRequest(params);
+    std::string response = getRequest(params);
 
     pugi::xml_document doc;
     if (doc.load_string(response.c_str())) {
-        auto key = doc.child("lfm").child("session").child("key");
-        if (key) {
-            sessionKey = key.child_value();
-            return true;
+        auto lfm = doc.child("lfm");
+        std::string status = lfm.attribute("status").as_string();
+        log_debug("status = {}", status);
+        if (status == "failed") {
+            auto error = lfm.child("error");
+            log_error("Fetch Session Key failed\ncode = {}\nmessage = {}", error.attribute("code").as_int(), error.text().as_string());
+        } else {
+            auto key = lfm.child("session").child("key");
+            if (key) {
+                sessionKey = key.child_value();
+                return true;
+            }
         }
     }
     return false;
@@ -119,7 +144,7 @@ bool LastFmScrobbler::updateNowPlaying(
         { "api_key", apiKey },
         { "sk", sessionKey },
         { "artist", artist },
-        { "track", track }
+        { "track", track },
     };
     if (!album.empty())
         params.emplace_back("album", album);
@@ -129,17 +154,53 @@ bool LastFmScrobbler::updateNowPlaying(
     std::string response = postRequest(params);
 
     pugi::xml_document doc;
-    return doc.load_string(response.c_str()) && std::string(doc.child("lfm").attribute("status").value()) == "ok";
+    if (doc.load_string(response.c_str())) {
+        auto lfm = doc.child("lfm");
+        std::string status = lfm.attribute("status").as_string();
+        log_debug("status = {}", status);
+        if (status == "failed") {
+            auto error = lfm.child("error");
+            log_error("Update Now Playing failed\ncode = {}\nmessage = {}", error.attribute("code").as_int(), error.text().as_string());
+            return false;
+        } else {
+            return status == "ok";
+        }
+    }
+    return false;
 }
 
 void LastFmScrobbler::startedPlaying(const SubmissionInfo& info)
 {
-    scrobbleTrack(
-        info.getArtist(),
-        info.getTrack(),
-        0,
-        info.getAlbum(),
-        info.getTrackLength());
+    stopRequested = false;
+
+    std::string artist = info.getArtist();
+    std::string track = info.getTrack();
+    std::string album = info.getAlbum();
+    int duration = info.getTrackLength();
+
+    std::time_t startTime = std::time(nullptr);
+
+    updateNowPlaying(artist, track, album, duration);
+
+    int scrobbleDelay = 30;
+    if (duration > 0)
+        scrobbleDelay = std::min(duration / 2, 30);
+
+    if (scrobbleThread.joinable())
+        scrobbleThread.join();
+
+    scrobbleThread = std::thread([=]() {
+        std::this_thread::sleep_for(std::chrono::seconds(scrobbleDelay));
+        if (!stopRequested.load()) {
+            scrobbleTrack(
+                artist,
+                track,
+                startTime,
+                album,
+                duration);
+        }
+    });
+    scrobbleThread.detach();
 }
 
 void LastFmScrobbler::finishedPlaying()
@@ -159,7 +220,7 @@ bool LastFmScrobbler::scrobbleTrack(
         { "sk", sessionKey },
         { "artist", artist },
         { "track", track },
-        { "timestamp", std::to_string(timestamp) }
+        { "timestamp", std::to_string(timestamp) },
     };
     if (!album.empty())
         params.emplace_back("album", album);
@@ -169,7 +230,19 @@ bool LastFmScrobbler::scrobbleTrack(
     std::string response = postRequest(params);
 
     pugi::xml_document doc;
-    return doc.load_string(response.c_str()) && std::string(doc.child("lfm").attribute("status").value()) == "ok";
+    if (doc.load_string(response.c_str())) {
+        auto lfm = doc.child("lfm");
+        std::string status = lfm.attribute("status").as_string();
+        log_debug("status = {}", status);
+        if (status == "failed") {
+            auto error = lfm.child("error");
+            log_error("Scrobble failed\ncode = {}\nmessage = {}", error.attribute("code").as_int(), error.text().as_string());
+            return false;
+        } else {
+            return status == "ok";
+        }
+    }
+    return false;
 }
 
 std::string LastFmScrobbler::buildApiSig(const std::vector<std::pair<std::string, std::string>>& params) const
@@ -184,26 +257,81 @@ std::string LastFmScrobbler::buildApiSig(const std::vector<std::pair<std::string
     for (const auto& [key, val] : sorted) {
         sig.append(fmt::format("{}{}", key, val));
     }
-    return hexStringMd5(fmt::format("{}{}", sig, apiSecret));
+    sig.append(apiSecret);
+    return hexStringMd5(sig);
+}
+
+std::string LastFmScrobbler::getRequest(const std::vector<std::pair<std::string, std::string>>& params) const
+{
+    CURL* curl = curl_easy_init();
+    if (!curl) {
+        log_error("curl error !");
+        return "";
+    }
+
+    std::vector<std::string> postFields;
+    for (auto&& [key, val] : params) {
+        if (val.empty()) {
+            postFields.emplace_back(key);
+        } else {
+            char* escaped = curl_easy_escape(curl, val.c_str(), 0);
+            postFields.emplace_back(fmt::format("{}={}", key, escaped ? escaped : ""));
+            if (escaped)
+                curl_free(escaped);
+        }
+    }
+
+    std::string response;
+    auto request = fmt::format("{}?{}", scrobbleUrl, fmt::join(postFields, "&"));
+    log_debug("Posting {}", request);
+    curl_easy_setopt(curl, CURLOPT_URL, request.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+
+    CURLcode res = curl_easy_perform(curl);
+    if (res != CURLE_OK) {
+        log_error("curl error: {}", curl_easy_strerror(res));
+    }
+
+    curl_easy_cleanup(curl);
+    return response;
 }
 
 std::string LastFmScrobbler::postRequest(const std::vector<std::pair<std::string, std::string>>& params) const
 {
-    std::vector<std::string> postFields;
-    for (auto&& [key, val] : params) {
-        postFields.emplace_back(fmt::format("{}={}", key, curl_easy_escape(nullptr, val.c_str(), 0)));
+    CURL* curl = curl_easy_init();
+    if (!curl) {
+        log_error("curl error !");
+        return "";
     }
 
-    CURL* curl = curl_easy_init();
-    std::string response;
-    if (curl) {
-        curl_easy_setopt(curl, CURLOPT_URL, scrobbleUrl.c_str());
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, fmt::format("{}", fmt::join(postFields, "&")).c_str());
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-        curl_easy_perform(curl);
-        curl_easy_cleanup(curl);
+    std::vector<std::string> postFields;
+    for (auto&& [key, val] : params) {
+        if (val.empty()) {
+            postFields.emplace_back(key);
+        } else {
+            char* escaped = curl_easy_escape(curl, val.c_str(), 0);
+            postFields.emplace_back(fmt::format("{}={}", key, escaped ? escaped : ""));
+            if (escaped)
+                curl_free(escaped);
+        }
     }
+
+    std::string response;
+    auto postData = fmt::format("{}", fmt::join(postFields, "&"));
+    curl_easy_setopt(curl, CURLOPT_URL, scrobbleUrl.c_str());
+    curl_easy_setopt(curl, CURLOPT_POST, 1L);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+    log_debug("Trying to scrobble with this post data: {}", postData);
+
+    CURLcode res = curl_easy_perform(curl);
+    if (res != CURLE_OK) {
+        log_error("curl error: {}", curl_easy_strerror(res));
+    }
+
+    curl_easy_cleanup(curl);
     return response;
 }
 

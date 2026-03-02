@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -73,35 +73,37 @@
 
 #include "metadata/metacontent_handler.h"
 
-static const auto handlerNames = std::map {
+#include <array>
+
+static const std::map<MetadataType, std::string_view> handlerNames {
 #ifdef HAVE_TAGLIB
-    std::pair<MetadataType, std::string_view> { MetadataType::TagLib, "TagLib" },
+    { MetadataType::TagLib, "TagLib" },
 #endif
 #ifdef HAVE_EXIV2
-    std::pair<MetadataType, std::string_view> { MetadataType::Exiv2, "Exiv2" },
+    { MetadataType::Exiv2, "Exiv2" },
 #endif
 #ifdef HAVE_LIBEXIF
-    std::pair<MetadataType, std::string_view> { MetadataType::LibExif, "LibExif" },
+    { MetadataType::LibExif, "LibExif" },
 #endif
 #ifdef HAVE_MATROSKA
-    std::pair<MetadataType, std::string_view> { MetadataType::Matroska, "Matroska" },
+    { MetadataType::Matroska, "Matroska" },
 #endif
 #ifdef HAVE_WAVPACK
-    std::pair<MetadataType, std::string_view> { MetadataType::WavPack, "WavPack" },
+    { MetadataType::WavPack, "WavPack" },
 #endif
 #ifdef HAVE_FFMPEG
-    std::pair<MetadataType, std::string_view> { MetadataType::Ffmpeg, "Ffmpeg" },
+    { MetadataType::Ffmpeg, "Ffmpeg" },
 #endif
 #ifdef HAVE_FFMPEGTHUMBNAILER
-    std::pair<MetadataType, std::string_view> { MetadataType::Thumbnailer, "Thumbnailer" },
-    std::pair<MetadataType, std::string_view> { MetadataType::VideoThumbnailer, "VideoThumbnailer" },
-    std::pair<MetadataType, std::string_view> { MetadataType::ImageThumbnailer, "ImageThumbnailer" },
+    { MetadataType::Thumbnailer, "Thumbnailer" },
+    { MetadataType::VideoThumbnailer, "VideoThumbnailer" },
+    { MetadataType::ImageThumbnailer, "ImageThumbnailer" },
 #endif
-    std::pair<MetadataType, std::string_view> { MetadataType::FanArt, "FanArt" },
-    std::pair<MetadataType, std::string_view> { MetadataType::ContainerArt, "ContainerArt" },
-    std::pair<MetadataType, std::string_view> { MetadataType::Subtitle, "Subtitle" },
-    std::pair<MetadataType, std::string_view> { MetadataType::Metafile, "Metafile" },
-    std::pair<MetadataType, std::string_view> { MetadataType::ResourceFile, "ResourceFile" },
+    { MetadataType::FanArt, "FanArt" },
+    { MetadataType::ContainerArt, "ContainerArt" },
+    { MetadataType::Subtitle, "Subtitle" },
+    { MetadataType::Metafile, "Metafile" },
+    { MetadataType::ResourceFile, "ResourceFile" },
 };
 
 MetadataService::MetadataService(const std::shared_ptr<Context>& context, const std::shared_ptr<Content>& content)
@@ -193,7 +195,7 @@ bool MetadataService::extractMetaData(
     };
     bool result = false;
     for (auto handler : metaHandlers) {
-        if (handlers.at(handler)->isSupported(contentType, isOggTheora, mimetype, mediaType)) {
+        if (handlers.at(handler)->isEnabled(contentType) && handlers.at(handler)->isSupported(contentType, isOggTheora, mimetype, mediaType)) {
             try {
                 log_debug("Running {} for {}", handlerNames.at(handler), item->getLocation().c_str());
                 auto handlerResult = handlers.at(handler)->fillMetadata(item);
@@ -244,7 +246,7 @@ bool MetadataService::attachResourceFiles(
     };
     bool result = false;
     for (auto handler : metaHandlers) {
-        if (handlers.at(handler)->isSupported(contentType, false, mimeType, mediaType)) {
+        if (handlers.at(handler)->isEnabled(contentType) && handlers.at(handler)->isSupported(contentType, false, mimeType, mediaType)) {
             try {
                 log_debug("Running {} for {}", handlerNames.at(handler), item->getLocation().c_str());
                 auto handlerResult = handlers.at(handler)->fillMetadata(item);

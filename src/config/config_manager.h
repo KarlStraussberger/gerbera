@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -39,7 +39,6 @@
 
 #include <map>
 #include <memory>
-#include <netinet/in.h>
 #include <pugixml.hpp>
 
 // forward declaration
@@ -65,6 +64,8 @@ public:
         const fs::path& configDir,
         fs::path dataDir,
         bool debug);
+
+    ~ConfigManager() override;
 
     /// @brief Returns the name of the config file that was used to launch the server.
     fs::path getConfigFilename() const override { return filename; }
@@ -154,6 +155,7 @@ public:
     void setOrigValue(const std::string& item, UIntOptionType value) override;
     void setOrigValue(const std::string& item, LongOptionType value) override;
     void setOrigValue(const std::string& item, ULongOptionType value) override;
+    void registerNode(const std::string& xmlPath) override;
 
 protected:
     std::shared_ptr<ConfigDefinition> definition;
@@ -161,10 +163,18 @@ protected:
     fs::path dataDir;
     fs::path magicFile;
     std::map<std::string, std::string> origValues;
-    std::unique_ptr<pugi::xml_document> xmlDoc { std::make_unique<pugi::xml_document>() };
+    pugi::xml_document xmlDoc;
     std::vector<std::shared_ptr<ConfigOption>> options;
+    std::map<std::string, bool> knownNodes;
 
-    std::shared_ptr<ConfigOption> setOption(const pugi::xml_node& root, ConfigVal option, const std::map<std::string, std::string>* arguments = nullptr);
+    std::shared_ptr<ConfigOption> setOption(
+        const pugi::xml_node& root,
+        ConfigVal option,
+        const std::map<std::string, std::string>* arguments = nullptr);
+    /// @brief load all modules referenced with "from-file"
+    void expandFiles(pugi::xml_node& parent);
+    /// @brief cache all nodes from config file
+    void getAllNodes(const pugi::xml_node& parent, bool getAttributes = true);
 
     std::shared_ptr<Config> getSelf();
 };

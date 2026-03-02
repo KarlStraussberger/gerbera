@@ -3,7 +3,7 @@
 
     config_mock.h - this file is part of Gerbera.
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -34,7 +34,8 @@ public:
     fs::path getConfigFilename() const override { return {}; }
     MOCK_METHOD(std::string, getOption, (ConfigVal option), (const override));
     void addOption(ConfigVal option, const std::shared_ptr<ConfigOption>& optionValue) override { }
-    std::int32_t getIntOption(ConfigVal option) const override {
+    std::int32_t getIntOption(ConfigVal option) const override
+    {
         switch (option) {
         case ConfigVal::UPNP_CAPTION_COUNT:
             return 1;
@@ -147,6 +148,7 @@ public:
     bool hasOrigValue(const std::string& item) const override { return false; }
     MOCK_METHOD(std::shared_ptr<TranscodingProfileList>, getTranscodingProfileListOption, (ConfigVal option), (const override));
     MOCK_METHOD(std::shared_ptr<DynamicContentList>, getDynamicContentListOption, (ConfigVal option), (const override));
+    void registerNode(const std::string& xmlPath) override { };
 };
 
 #endif // __CONFIG_MOCK_H__

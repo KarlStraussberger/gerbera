@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -199,7 +199,7 @@ pugi::xml_node& ParserScript::readXml(int direction)
         return root;
     }
     if (direction < -1 && root.root()) {
-        root = xmlDoc->document_element();
+        root = xmlDoc.document_element();
         return root;
     }
     if (direction < 0 && root.parent()) {

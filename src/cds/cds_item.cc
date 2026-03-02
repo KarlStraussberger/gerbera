@@ -10,7 +10,7 @@ Gerbera - https://gerbera.io/
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -35,7 +35,8 @@ Gerbera - https://gerbera.io/
 #include "upnp/upnp_common.h"
 #include "util/grb_time.h"
 
-CdsItem::CdsItem()
+CdsItem::CdsItem(CdsEntryType type)
+    : CdsObject(type)
 {
     objectType = OBJECT_TYPE_ITEM;
     upnpClass = UPNP_CLASS_ITEM;
@@ -89,7 +90,8 @@ void CdsItem::validate() const
 
 //---------
 
-CdsItemExternalURL::CdsItemExternalURL()
+CdsItemExternalURL::CdsItemExternalURL(CdsEntryType type)
+    : CdsItem(type)
 {
     objectType |= OBJECT_TYPE_ITEM_EXTERNAL_URL;
     upnpClass = UPNP_CLASS_ITEM;

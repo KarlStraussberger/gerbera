@@ -2,24 +2,100 @@
 
 ## HEAD
 
-This release is two ways disconnecting Gerbera from it's MediaTomb past: The way JavaScript is integrated is finally changed from script to function
-and there is a new database: **PostgreSQL**.
-
-Layout of documentation for configuration was improved by headings, versioning details and a confval layout.
-
-Last.FM integration is working without old lastfmlib and using Last.FM API 2.0.
-
-### Removed Features
-
-**Support for loading layout scripts has been removed now. The javascript interface must be used by calling functions depending on the media type.**
+The config property `xmlns` was renamed to `xml-ns` for compliance reasons. Watch
+out for warnings `Found extra config file entry '/config/server/upnp/title-properties/upnp-namespace/attribute::xmlns'`.
 
 ### NEW Features
 
-- PostgreSQL database support
+- Split config files into modules (from-file)
+- Export and import changed objects
+- Extract Matroska metadata also with taglib 2.2
+- Select content type for import library to reduce import time
+
+### FIXES
+
+- LastFM with rest API
+- Configuration for FFmpeg stream data import to reduce import times
+
+### Code Improvements
+
+- Remove prefix for location type in database
+- Update maximum versions of npupnp (6.2.3), cmake (4.2.3), pupnp (1.18.0), taglib (2.2), libexiv2 (0.28.8)
+
+## v3.1.1
+
+This release fixes an issue in the docker container.
+
+### FIXES
+
+- docker startup under default user
+
+### Code Improvements
+
+- Update maximum versions of wavpack (5.9.0), cmake (4.2.1)
+
+## v3.1.0
+
+This release is more or less a maintenance release to stabilize recent changes.
+On top of the javascript approach several new layout functions have been added.
+Based on this the Zip download function can be used to export virtual folders.
+
+After reworking the flag handling, the unused explicit flag for PanasonicTV was removed.
+
+### NEW Features
+
+- Negation of `client-flags` in transcoding
+- Additional import scripts for images and videos
+- Download of Zip files for containers
+
+### FIXES
+
+- Import of wavpack files with long properties
+- Endieness in network filtering
+- Handling of Samsung flags
+- Checksum error in loading of Postgres Scripts
+
+### Code Improvements
+
+- Quirks flags refactored to enum
+- Update maximum versions of ffmpegthumbnailer (2.3.0), cmake (4.2.0), spdlog (1.17.0)
+- Update images to use Alpine v3.23
+- Add debug docker image
+- Support building for OmniOS
+- Added CI checks for s390x and FreeBSD
+
+## v3.0.0
+
+This release is in two ways disconnecting Gerbera from it's MediaTomb past: The way JavaScript is integrated is finally changed from script to function
+and there is a new database: **PostgreSQL**.
+
+Furthermore, the layout of documentation for configuration file entries was improved by headings, versioning details and a confval layout.
+So, it becomes obvious which setting is available in the respective version.
+
+The Last.FM integration was improved to be working without old lastfmlib by using HTTP based Last.FM API 2.0.
+The old lastfmlib based integration can still be used if you get hold of a compiled version and an API key.
+
+Many configuration file entries already got removed or changed, leading to clogged config files. Therefore, the configuration verification on startup
+now warns as soon as there are entries that do not have any effect. This is the case for some disabled features (e.g., transcoding, databases)
+as well as for legacy entries.
+
+### Removed Features
+
+**Support for loading and running layout scripts has been removed now. Now, the JavaScript interface is calling import functions depending on the media type.**
+
+If you added or changed javascript files, make sure the modified files are in a separate folder and the config entry `import/scripting/script-folder/custom`
+is pointing to that directory.
+Also make sure that backup files do not have extension `.js` otherwise they are loaded!
+
+### NEW Features
+
+- Added (experimental) PostgreSQL database support
 - Integrated Last.FM support for API 2.0
-- WebUI shows referenced items in other parts of layout in details
+- WebUI shows referenced items in other parts of layout in _details_
 - Spinner on WebUI while loading
 - New command line option for even more data in the config example
+- New command line option to drop database
+- Allow blocking a group of clients
 - Integration with systemd
 - Add Build for Ubuntu 25.10
 
@@ -29,12 +105,14 @@ Last.FM integration is working without old lastfmlib and using Last.FM API 2.0.
 - Search for contentClass (Samsung TV)
 - Title from NFO files
 - Drop Build for Ubuntu 24.10
+- Search folders in lowercase mode
+- Several Libraries for build on MacOS
 
 ### Code Improvements
 
 - MacOS build with ICU and WavPack
 - Documentation is using special tags for config variables
-- Update maximum library versions of exiv2 (0.28.7), fmt (12.0.0), pupnp (1.14.25), spdlog (1.16.0)
+- Update maximum library versions of exiv2 (0.28.7), fmt (12.1.0), pupnp (1.14.25), spdlog (1.16.0)
 - Cleanup of cmake modules
 
 

@@ -4,7 +4,7 @@
 
     gerbera-tree.module.js - this file is part of Gerbera.
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -297,7 +297,8 @@ const transformContainers = (response, createParent) => {
       upnpShortcut: item.upnp_shortcut ?? null,
       autoScanMode: item.autoscan_mode,
       autoScanType: item.autoscan_type,
-      image: ('image' in item) ? item.image : null
+      image: ('image' in item) ? item.image : null,
+      zip: ('zip' in item) ? item.zip : null,
     };
     if (!GerberaApp.serverConfig.enableThumbnail) {
       node.gerbera.image = null;
@@ -326,6 +327,14 @@ const generateBadges = (item) => {
   if ('tweak' in item && (item.tweak || item.tweak === 'true')) {
     badges.push('t');
   }
+  if ('source' in item) {
+    if (item.source === 'User') {
+      badges.push('u');
+    } else if (item.source === 'Modified') {
+      badges.push('m');
+    }
+  }
+
   return badges;
 };
 

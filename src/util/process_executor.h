@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -34,14 +34,12 @@
 #ifndef __PROCESS_EXECUTOR_H__
 #define __PROCESS_EXECUTOR_H__
 
-#include <map>
-#include <memory>
-#include <vector>
-
-#include <unistd.h>
-
 #include "util/executor.h"
 #include "util/grb_fs.h"
+
+#include <map>
+#include <unistd.h>
+#include <vector>
 
 class ProcessExecutor final : public Executor {
 public:

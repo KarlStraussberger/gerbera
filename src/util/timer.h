@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -37,7 +37,6 @@
 #include "grb_time.h"
 #include "thread_runner.h"
 
-#include <algorithm>
 #include <atomic>
 #include <memory>
 
@@ -76,6 +75,10 @@ public:
     public:
         Subscriber() = default;
         virtual ~Subscriber() = default;
+
+        Subscriber(const Subscriber&) = delete;
+        Subscriber& operator=(const Subscriber&) = delete;
+
         virtual void timerNotify(const std::shared_ptr<Parameter>& parameter) = 0;
     };
 

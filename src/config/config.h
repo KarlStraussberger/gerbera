@@ -4,7 +4,7 @@
 
     config.h - this file is part of Gerbera.
 
-    Copyright (C) 2020-2025 Gerbera Contributors
+    Copyright (C) 2020-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -50,7 +50,11 @@ enum class LayoutType;
 /// @brief Definition of interface for configuration manager
 class Config {
 public:
+    Config() = default;
     virtual ~Config() = default;
+
+    Config(const Config&) = delete;
+    Config& operator=(const Config&) = delete;
 
     /// @brief load configuration from database
     virtual void updateConfigFromDatabase(const std::shared_ptr<Database>& database) = 0;
@@ -131,6 +135,9 @@ public:
     /// @brief returns a config option of type DynamicContentList
     /// @param option to retrieve
     virtual std::shared_ptr<DynamicContentList> getDynamicContentListOption(ConfigVal option) const = 0;
+
+    /// @brief mark node as present
+    virtual void registerNode(const std::string& xmlPath) = 0;
 };
 
 #endif // __CONFIG_H__

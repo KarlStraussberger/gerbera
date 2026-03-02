@@ -4,7 +4,7 @@
 
     config_setup_time.h - this file is part of Gerbera.
 
-    Copyright (C) 2023-2025 Gerbera Contributors
+    Copyright (C) 2023-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -67,7 +67,9 @@ public:
         const std::map<std::string, std::string>* arguments = nullptr) override;
 
     std::shared_ptr<ConfigOption> newOption(std::string& optValue);
-    LongOptionType getXmlContent(const pugi::xml_node& root);
+    LongOptionType getXmlContent(
+        const pugi::xml_node& root,
+        const std::shared_ptr<Config>& config);
     LongOptionType checkTimeValue(std::string& optValue);
 };
 

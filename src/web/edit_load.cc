@@ -11,7 +11,7 @@
                             Sergey 'Jin' Bostandzhyan <jin@mediatomb.cc>,
                             Leonhard Wimmer <leo@mediatomb.cc>
 
-    Copyright (C) 2016-2025 Gerbera Contributors
+    Copyright (C) 2016-2026 Gerbera Contributors
 
     MediaTomb is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -55,7 +55,7 @@ bool Web::EditLoad::processPageAction(Json::Value& element, const std::string& a
         throw_std_runtime_error("invalid object id");
 
     auto objectID = std::stoi(objID);
-    auto obj = database->loadObject(getGroup(), objectID);
+    auto obj = database->loadObject(objectID, getGroup());
 
     Json::Value item;
     writeCoreInfo(obj, item, objectID);
@@ -113,6 +113,11 @@ void Web::EditLoad::writeCoreInfo(
     flagsEl["editable"] = false;
     item["flags"] = flagsEl;
 
+    Json::Value sourceEl;
+    flagsEl["value"] = CdsObject::mapSource(obj->getSource());
+    flagsEl["editable"] = false;
+    item["source"] = sourceEl;
+
     Json::Value lmtEl;
     if (obj->getMTime() > std::chrono::seconds::zero()) {
         lmtEl["value"] = grbLocaltime("{:%Y-%m-%d %H:%M:%S}", obj->getMTime());
@@ -131,7 +136,7 @@ void Web::EditLoad::writeCoreInfo(
     lutEl["editable"] = false;
     item["last_updated"] = lutEl;
 
-    item["obj_type"] = CdsObject::mapObjectType(obj->getObjectType()).data();
+    item["obj_type"] = CdsObject::mapObjectType(obj->getObjectType());
 }
 
 void Web::EditLoad::writeMetadata(
@@ -303,7 +308,7 @@ void Web::EditLoad::writeItemInfo(
 
     if (objItem->isExternalItem()) {
         Json::Value protocol;
-        protocol["value"] = getProtocol(objItem->getResource(ContentHandler::DEFAULT)->getAttribute(ResourceAttribute::PROTOCOLINFO)).data();
+        protocol["value"] = getProtocol(objItem->getResource(ContentHandler::DEFAULT)->getAttribute(ResourceAttribute::PROTOCOLINFO));
         protocol["editable"] = true;
         item["protocol"] = protocol;
     }

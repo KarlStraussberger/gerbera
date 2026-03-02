@@ -4,7 +4,7 @@
 
     mysql_config_fake.h - this file is part of Gerbera.
 
-    Copyright (C) 2020-2025 Gerbera Contributors
+    Copyright (C) 2020-2026 Gerbera Contributors
 
     Gerbera is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -38,16 +38,16 @@ public:
             return "root";
         }
         if (option == ConfigVal::SERVER_STORAGE_DRIVER) {
-            return "mysql";
+            return DB_DRIVER_MYSQL;
         }
         if (option == ConfigVal::SERVER_STORAGE_MYSQL_INIT_SQL_FILE) {
-            return "mysql.sql";
+            return MY_INIT_FILE;
         }
         if (option == ConfigVal::SERVER_STORAGE_MYSQL_DROP_FILE) {
-            return "mysql-drop.sql";
+            return MY_DROP_FILE;
         }
         if (option == ConfigVal::SERVER_STORAGE_MYSQL_UPGRADE_FILE) {
-            return "mysql-upgrade.xml";
+            return MY_UPGR_FILE;
         }
         //        if (option == ConfigVal::SERVER_STORAGE_MYSQL_DATABASE) {
         //            return "gerbera";
@@ -80,6 +80,7 @@ public:
     bool hasOrigValue(const std::string& item) const override { return false; }
     std::shared_ptr<TranscodingProfileList> getTranscodingProfileListOption(ConfigVal option) const override { return nullptr; }
     std::shared_ptr<DynamicContentList> getDynamicContentListOption(ConfigVal option) const override { return nullptr; }
+    void registerNode(const std::string& xmlPath) override {};
 };
 
 #endif //GERBERA_MYSQL_CONFIG_FAKE_H
