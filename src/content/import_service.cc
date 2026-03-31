@@ -45,6 +45,7 @@
 
 #ifdef HAVE_JS
 #include "layout/js_layout.h"
+#include "scripting/cuesheet_parser_script.h"
 #include "scripting/import_script.h"
 #include "scripting/metafile_parser_script.h"
 #include "scripting/playlist_parser_script.h"
@@ -309,6 +310,10 @@ void ImportService::initLayout(LayoutType layoutType)
         metafileParserScript = std::make_shared<MetafileParserScript>(content, rootPath.string());
         metafileParserScript->init();
     }
+    if (!cuesheetParserScript) {
+        cuesheetParserScript = std::make_shared<CuesheetParserScript>(content, rootPath.string());
+        cuesheetParserScript->init();
+    }
 #endif
 }
 
@@ -318,6 +323,7 @@ void ImportService::destroyLayout()
 #ifdef HAVE_JS
     playlistParserScript = nullptr;
     metafileParserScript = nullptr;
+    cuesheetParserScript = nullptr;
 #endif
 }
 
@@ -703,7 +709,8 @@ void ImportService::createItems(
                     updateSingleItem(dirEntry, item, item->getMimeType());
                     if (lastModifiedNewMax < cdsObj->getMTime())
                         lastModifiedNewMax = cdsObj->getMTime();
-                    database->updateObject(cdsObj, nullptr);
+                    metadataService->afterCreation(item, dirEntry);
+                    database->updateObject(item, nullptr);
                     stateEntry->setObject(ImportState::Created, cdsObj);
                     log_debug("Item changed {} {}", itemPath.string(), cdsObj->getID());
                 } else {
@@ -730,6 +737,8 @@ void ImportService::createItems(
                     stateEntry->setObject(ImportState::Created, cdsObj);
                     cdsObj->setParentID(parentContainer ? parentContainer->getID() : INVALID_OBJECT_ID);
                     database->addObject(cdsObj, nullptr);
+                    metadataService->afterCreation(std::static_pointer_cast<CdsItem>(cdsObj), dirEntry);
+                    database->updateObject(cdsObj, nullptr);
                 } else {
                     stateEntry->setObject(ImportState::Broken, cdsObj);
                     cdsObj = nullptr;
@@ -877,7 +886,9 @@ void ImportService::fillSingleLayout(
     }
 }
 
-void ImportService::parseMetafile(const std::shared_ptr<CdsObject>& obj, const fs::path& path) const
+void ImportService::parseMetafile(
+    const std::shared_ptr<CdsObject>& obj,
+    const fs::path& path) const
 {
 #ifdef HAVE_JS
     try {
@@ -888,6 +899,22 @@ void ImportService::parseMetafile(const std::shared_ptr<CdsObject>& obj, const f
     }
 #else
     log_warning("Metadata file {} will not be parsed: Gerbera was compiled without JS support!", path.string());
+#endif // HAVE_JS
+}
+
+void ImportService::parseCueSheet(
+    const std::shared_ptr<CdsObject>& obj,
+    const fs::path& path) const
+{
+#ifdef HAVE_JS
+    try {
+        if (cuesheetParserScript)
+            cuesheetParserScript->processObject(obj, path);
+    } catch (const std::runtime_error& e) {
+        log_error("{}: {}", path.string(), e.what());
+    }
+#else
+    log_warning("CueSheet file {} will not be parsed: Gerbera was compiled without JS support!", path.string());
 #endif // HAVE_JS
 }
 
@@ -1012,8 +1039,8 @@ void ImportService::assignFanArt(
                 }
                 if (refFanArt->getAttribute(ResourceAttribute::RESOURCE_FILE).empty()) {
                     if (fanArtObjId > CDS_ID_ROOT) {
-                        refFanArt->addAttribute(ResourceAttribute::FANART_OBJ_ID, fmt::to_string(fanArtObjId));
-                        refFanArt->addAttribute(ResourceAttribute::FANART_RES_ID, fmt::to_string(fanArtResId));
+                        refFanArt->addAttribute(ResourceAttribute::FANART_OBJ_ID, fanArtObjId);
+                        refFanArt->addAttribute(ResourceAttribute::FANART_RES_ID, fanArtResId);
                         fanart = refFanArt;
                     }
                 } else {
@@ -1075,10 +1102,10 @@ std::pair<int, bool> ImportService::addContainerTree(
     std::string tree; // accumulate path to container here
     int result = parentContainerId;
     bool isNew = false;
-    bool isVirtual = parentContainerId != CDS_ID_FS_ROOT;
     int count = 0;
 
     for (auto&& item : chain) {
+        bool isVirtual = item->getEntryType() != CdsEntryType::Directory && item->getEntryType() != CdsEntryType::File;
         std::string subTree;
         if (item->getTitle().empty()) {
             log_error("Received chain item without title");

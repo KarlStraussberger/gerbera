@@ -71,6 +71,7 @@ static const auto otKeys = std::map<ObjectType, std::string> {
     { ObjectType::Unknown, "Unknown" },
     { ObjectType::Folder, "Folder" },
     { ObjectType::Playlist, "Playlist" },
+    { ObjectType::Cuesheet, "Cuesheet" },
     { ObjectType::Audio, "Audio" },
     { ObjectType::Video, "Video" },
     { ObjectType::Image, "Image" },

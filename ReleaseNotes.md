@@ -1,5 +1,15 @@
 # Gerbera - UPnP AV Mediaserver.
 
+## HEAD
+
+### NEW Features
+
+- Support for cuesheets
+
+### Code Improvements
+
+- Update maximum versions of pupnp (1.18.4)
+
 ## v3.2.1
 
 This release fixes a small issue in the migration for MySQL and PostgreSQL databases

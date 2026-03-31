@@ -57,6 +57,7 @@ class UpnpMap;
 #ifdef HAVE_JS
 class PlaylistParserScript;
 class MetafileParserScript;
+class CuesheetParserScript;
 #endif // HAVE_JS
 
 enum class ImportState : int {
@@ -242,6 +243,7 @@ private:
 #ifdef HAVE_JS
     std::shared_ptr<PlaylistParserScript> playlistParserScript;
     std::shared_ptr<MetafileParserScript> metafileParserScript;
+    std::shared_ptr<CuesheetParserScript> cuesheetParserScript;
 #endif
 
     std::error_code ec;
@@ -362,7 +364,13 @@ public:
     std::shared_ptr<MetadataService> getMetadataService() const { return metadataService; }
 
     /// @brief parse a file containing metadata for object
-    void parseMetafile(const std::shared_ptr<CdsObject>& obj, const fs::path& path) const;
+    void parseMetafile(
+        const std::shared_ptr<CdsObject>& obj,
+        const fs::path& path) const;
+    /// @brief parse a file containing cuesheet
+    void parseCueSheet(
+        const std::shared_ptr<CdsObject>& obj,
+        const fs::path& path) const;
 };
 
 #endif

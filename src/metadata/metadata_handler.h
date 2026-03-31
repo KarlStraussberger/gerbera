@@ -75,7 +75,8 @@ public:
     /// @brief check whether the handler is enabled for the file type
     virtual bool isEnabled(const std::string& contentType) { return true; }
     /// @brief check whether file type is supported by handler
-    virtual bool isSupported(const std::string& contentType,
+    virtual bool isSupported(
+        const std::string& contentType,
         bool isOggTheora,
         const std::string& mimeType,
         ObjectType mediaType) { return true; }

@@ -1,5 +1,10 @@
 ## Gerbera - UPnP AV Mediaserver.
 
+### HEAD
+
+- Add support for cuesheets
+- Bump picomatch from 2.3.1 to 2.3.2 in /gerbera-web
+
 ### v3.2.1
 
 - Add Autolabeler

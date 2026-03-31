@@ -64,9 +64,11 @@ enum class MetadataType {
     ContainerArt,
     Subtitle,
     Metafile,
+    CueSheet,
     ResourceFile,
 };
 
+/// @brief service dispatcher for metadata
 class MetadataService {
 private:
     std::shared_ptr<Context> context;
@@ -78,10 +80,16 @@ private:
 public:
     explicit MetadataService(const std::shared_ptr<Context>& context, const std::shared_ptr<Content>& content);
 
+    /// @brief read metadata from directly from media file
     bool extractMetaData(
         const std::shared_ptr<CdsItem>& item,
         const fs::directory_entry& dirEnt);
+    /// @brief add external information to metadata
     bool attachResourceFiles(
+        const std::shared_ptr<CdsItem>& item,
+        const fs::directory_entry& dirEnt);
+    /// @brief handle data after item was created
+    bool afterCreation(
         const std::shared_ptr<CdsItem>& item,
         const fs::directory_entry& dirEnt);
     std::shared_ptr<MetadataHandler> getHandler(ContentHandler handlerType);

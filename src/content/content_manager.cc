@@ -397,7 +397,7 @@ std::deque<std::shared_ptr<GenericTask>> ContentManager::getTasklist()
     return taskList;
 }
 
-std::shared_ptr<ImportService> ContentManager::getImportService(const std::shared_ptr<AutoscanDirectory>& adir)
+std::shared_ptr<ImportService> ContentManager::getImportService(const std::shared_ptr<AutoscanDirectory>& adir) const
 {
     auto result = adir ? adir->getImportService() : nullptr;
     if (!result)
@@ -471,7 +471,14 @@ std::shared_ptr<CdsObject> ContentManager::createSingleItem(
 
 void ContentManager::parseMetafile(const std::shared_ptr<CdsObject>& obj, const fs::path& path) const
 {
-    importService->parseMetafile(obj, path);
+    auto adir = findAutoscanDirectory(path);
+    getImportService(adir)->parseMetafile(obj, path);
+}
+
+void ContentManager::parseCueSheet(const std::shared_ptr<CdsObject>& obj, const fs::path& path) const
+{
+    auto adir = findAutoscanDirectory(path);
+    getImportService(adir)->parseCueSheet(obj, path);
 }
 
 std::shared_ptr<CdsObject> ContentManager::_addFile(
@@ -984,7 +991,7 @@ void ContentManager::addRecursive(
         try {
             fs::path rootPath = task ? task->getRootPath() : "";
             // check database if parent, process existing
-            auto obj = createSingleItem(subDirEnt, parentContainer, rootPath, followSymlinks, (parentID > 0), true, firstChild, adir, task);
+            auto obj = createSingleItem(subDirEnt, parentContainer, rootPath, followSymlinks, (parentID > CDS_ID_ROOT), true, firstChild, adir, task);
 
             if (obj) {
                 firstChild = false;
@@ -1232,7 +1239,8 @@ std::shared_ptr<CdsContainer> ContentManager::addContainer(
 
 std::pair<int, bool> ContentManager::addContainerTree(
     const std::vector<std::shared_ptr<CdsObject>>& chain,
-    const std::shared_ptr<CdsObject>& refItem)
+    const std::shared_ptr<CdsObject>& refItem,
+    int rootId)
 {
     if (chain.empty()) {
         log_error("Received empty chain");
@@ -1240,7 +1248,7 @@ std::pair<int, bool> ContentManager::addContainerTree(
     }
     std::vector<int> createdIds;
 
-    auto result = importService->addContainerTree(CDS_ID_ROOT, chain, refItem, createdIds);
+    auto result = importService->addContainerTree(rootId, chain, refItem, createdIds);
 
     if (!createdIds.empty()) {
         update_manager->containerChanged(result.first);

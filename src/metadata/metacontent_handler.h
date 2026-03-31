@@ -24,10 +24,11 @@
 /// @file metadata/metacontent_handler.h
 /// @brief Definition of the Metacontent, FanArt and Subtitle classes.
 
-#ifndef __METADATA_CONTENT_H__
-#define __METADATA_CONTENT_H__
+#ifndef __METACONTENT_HANDLER_H__
+#define __METACONTENT_HANDLER_H__
 
 #include "config/config.h"
+#include "metadata_enums.h"
 #include "metadata_handler.h"
 
 class ConfigDefinition;
@@ -121,20 +122,6 @@ private:
     static std::unique_ptr<ContentPathSetup> setup;
 };
 
-/// @brief This class is responsible for populating metadata from additional files
-class MetafileHandler : public MetacontentHandler {
-public:
-    explicit MetafileHandler(const std::shared_ptr<Context>& context, std::shared_ptr<Content> content);
-    bool fillMetadata(const std::shared_ptr<CdsObject>& obj) override;
-    std::unique_ptr<IOHandler> serveContent(
-        const std::shared_ptr<CdsObject>& obj,
-        const std::shared_ptr<CdsResource>& resource) override;
-
-private:
-    static std::unique_ptr<ContentPathSetup> setup;
-    std::shared_ptr<Content> content;
-};
-
 /// @brief This class is responsible for reverse mapping filesystem based resources
 class ResourceHandler : public MetacontentHandler {
 public:
@@ -148,4 +135,4 @@ private:
     static std::unique_ptr<ContentPathSetup> setup;
 };
 
-#endif // __METADATA_CONTENT_H__
+#endif // __METACONTENT_HANDLER_H__
