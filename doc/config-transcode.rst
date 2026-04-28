@@ -98,6 +98,19 @@ on connections with high latency.
 
 This setting allows to set the number of retries after a timeout occured. Increase it for unrelyable streams.
 
+.. confval:: curl-chunk-size
+   :type: :confval:`Integer`
+   :required: false
+   :default: ``16384``
+..
+
+   .. versionadded:: HEAD
+   .. code:: xml
+
+       curl-chunk-size="32768"
+
+This setting allows to set the size of chunks during processing of online stream.
+
 Mimetype Profile Mappings
 =========================
 
@@ -345,15 +358,17 @@ Profile Attributes
    all flags are set. This option adds these clients to get transcoding also.
 
    .. confval:: profile type
-      :type: :confval:`Enum` (``external``)
+      :type: :confval:`Enum` (``external``, ``internal``)
       :required: true
    ..
 
-     .. code:: xml
+      .. versionchanged:: HEAD new option ``internal``
+      .. code:: xml
 
-        type="external"
+         type="external"
 
-   Defines the profile type, currently only ``external`` is supported, this will change in the future.
+   Defines the profile type, ``external`` is supported to run scripts with transcoding logic,
+   ``internal`` is only supported if ffmpeg was enabled at built time.
 
 Profile Items
 ^^^^^^^^^^^^^

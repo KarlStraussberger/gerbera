@@ -48,6 +48,7 @@
 enum class TranscodingType {
     None,
     External,
+    Internal,
     Remote
 };
 

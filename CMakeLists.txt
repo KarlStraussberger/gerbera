@@ -331,6 +331,8 @@ add_library(
     src/transcoding/transcode_dispatcher.h
     src/transcoding/transcode_ext_handler.cc
     src/transcoding/transcode_ext_handler.h
+    src/transcoding/transcode_int_handler.cc
+    src/transcoding/transcode_int_handler.h
     src/transcoding/transcode_handler.cc
     src/transcoding/transcode_handler.h
     src/upnp/client_manager.cc
